@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="pepfactory logo">
+  <defs>
+    <linearGradient id="pink" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#ef4f9e"/>
+      <stop offset="0.48" stop-color="#e94794"/>
+      <stop offset="1" stop-color="#df3e8d"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#pink)"/>
+  <g fill="none" stroke="#fff" stroke-width="46" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M244 241h305c70 0 131 27 179 79 38 42 61 91 69 148"/>
+    <path d="M244 241v306c0 73 29 134 83 181 48 42 103 62 167 60"/>
+    <path d="M336 332h213c75 0 132 27 172 81 23 31 37 65 42 102"/>
+    <path d="M336 332v273c0 55 19 96 58 123 29 20 62 29 100 27"/>
+    <path d="M423 426h259c69 0 126 23 171 68 42 43 64 96 64 159 0 62-22 115-64 159-45 45-102 68-171 68H573v155"/>
+    <path d="M423 426v254"/>
+    <path d="M573 545h156c-8 54-34 98-79 131-36 26-78 39-127 39"/>
+    <path d="M523 715v258H336V728"/>
+  </g>
+</svg>

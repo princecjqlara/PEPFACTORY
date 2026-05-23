@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pepfactory</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-mark" src="logo.png" alt="pepfactory logo" />
+          <div>
+            <p class="eyebrow">Anonymous Kiosk Sales</p>
+            <h1><span>P</span>epfactory</h1>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="auth-button secondary" id="signinBtn" type="button">Sign In</button>
+          <button class="auth-button" id="joinCommunityBtn" type="button">Join Community</button>
+          <div class="identity-pill">
+            <span class="signal-dot"></span>
+            <span id="anonHandle">Anon-0000</span>
+          </div>
+          <button class="auth-button secondary" id="signoutBtn" type="button" hidden>Sign Out</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="left-rail">
+          <section class="workspace-panel">
+            <nav class="workspace-tabs" aria-label="pepfactory navigation">
+              <button class="tab-button active" type="button" data-tab="store">Store</button>
+              <button class="tab-button" type="button" data-tab="discounts">Preorder (Bulk Buy)</button>
+              <button class="tab-button" type="button" data-tab="orders">Orders</button>
+            </nav>
+
+            <div class="workspace-body">
+              <section class="workspace-view store-panel active" data-view="store">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Built-In Store</p>
+                    <div class="store-title-row">
+                      <h2>Products</h2>
+                      <span class="stock-chip" id="stockChip">0 in stock</span>
+                    </div>
+                  </div>
+                  <div class="store-actions">
+                    <input id="storeSearch" class="store-search" type="search" placeholder="Search products" autocomplete="off" />
+                    <button class="cart-trigger" id="cartPopupBtn" type="button">
+                      Cart <span id="cartCount">0</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="cart-popover" id="cartPopover">
+                  <div class="receipt-paper">
+                    <div class="section-head compact">
+                      <div>
+                        <p class="eyebrow">Receipt</p>
+                        <h2>Anonymous Cart</h2>
+                      </div>
+                      <button class="icon-button" id="clearCartBtn" type="button" aria-label="Clear cart">x</button>
+                    </div>
+                    <div class="cart-list" id="cartList"></div>
+                    <div class="cart-suggestions" id="cartSuggestions"></div>
+                    <div class="cart-total">
+                      <span>Total</span>
+                      <strong id="cartTotal">PHP 0</strong>
+                    </div>
+                    <button class="primary-button" id="checkoutBtn" type="button">Review Checkout</button>
+                  </div>
+                </div>
+                <div class="cart-sent-card" id="cartSentCard"></div>
+                <div class="category-filter" id="categoryFilter" aria-label="Store categories"></div>
+                <div class="product-grid" id="productGrid"></div>
+              </section>
+
+              <section class="workspace-view domino-panel" data-view="discounts">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Preorder</p>
+                    <h2>Preorder (Bulk Buy)</h2>
+                  </div>
+                  <button class="cart-trigger" id="preorderCartBtn" type="button">
+                    Cart <span id="preorderCartCount">0</span>
+                  </button>
+                </div>
+                <div class="tier-track" id="tierTrack" aria-label="Group-buy tier track"></div>
+                <div class="refund-strip" id="refundStrip">Preorder (Bulk Buy) tiers unlock lower prices for grouped orders.</div>
+                <div class="bulk-buy-list" id="bulkBuyList"></div>
+              </section>
+
+              <section class="workspace-view order-panel" data-view="orders">
+                <div class="section-head compact">
+                  <div>
+                    <p class="eyebrow">Member Orders</p>
+                    <h2>Order Progress</h2>
+                  </div>
+                </div>
+                <div class="order-summary" id="orderSummary"></div>
+                <div class="order-list" id="orderList"></div>
+              </section>
+
+            </div>
+          </section>
+        </section>
+
+        <aside class="right-rail">
+          <section class="chat-panel">
+            <div class="section-head compact">
+              <div class="chat-title-row">
+                <img class="chat-profile-picture" src="logo.png" alt="pepfactory group chat" />
+                <div>
+                  <p class="eyebrow" id="chatPanelEyebrow">Group Chat</p>
+                  <h2 id="chatPanelTitle">pepfactory Messenger</h2>
+                </div>
+              </div>
+              <div class="chat-head-actions">
+                <div class="chat-mode-tabs" id="chatModeTabs" aria-label="Chat mode">
+                  <button class="active" type="button" data-chat-mode="group">Group</button>
+                  <button type="button" data-chat-mode="admin">Admin</button>
+                </div>
+                <input id="chatSearchInput" type="search" placeholder="Search chat" autocomplete="off" />
+                <select id="adminChatFilterSelect" aria-label="Admin chat filter" hidden>
+                  <option value="all">All messages</option>
+                  <option value="real">Real users only</option>
+                  <option value="trolls">Troll messages only</option>
+                </select>
+                <button class="mention-button" id="mentionInboxBtn" type="button" aria-label="Mentions"> @ <span id="mentionCount">0</span></button>
+                <span class="chat-status" id="chatSearchStatus">0 online / 0 members</span>
+              </div>
+            </div>
+            <div class="mention-inbox" id="mentionInbox" hidden></div>
+            <button class="pinned-system-message" id="pinnedSystemMessage" type="button" hidden></button>
+            <div class="chat-feed" id="chatFeed" aria-live="polite"></div>
+            <form class="chat-form" id="chatForm">
+              <div class="reply-preview" id="replyPreview">
+                <span id="replyText"></span>
+                <button class="icon-button" id="cancelReplyBtn" type="button" aria-label="Cancel reply">x</button>
+              </div>
+              <input class="admin-send-as-search" id="adminGroupSendAsSearchInput" type="search" placeholder="Search user" aria-label="Search send-as users" autocomplete="off" hidden />
+              <select class="admin-send-as-select" id="adminGroupSendAsSelect" aria-label="Send as" hidden></select>
+              <select class="admin-visibility-select" id="adminGroupVisibilitySelect" aria-label="Message visibility" hidden>
+                <option value="all">All can see</option>
+                <option value="hide-target">Hide from selected user</option>
+                <option value="only-target">Only selected user</option>
+              </select>
+              <input id="chatInput" type="text" maxlength="120" placeholder="Message the group" autocomplete="off" />
+              <input id="chatMediaInput" type="file" accept="image/*,video/*" hidden />
+              <button class="media-button" id="chatMediaBtn" type="button" aria-label="Attach media" title="Attach media">+</button>
+              <button class="send-button" type="submit">Send</button>
+              <div class="media-preview" id="chatMediaPreview"></div>
+            </form>
+            <div class="private-chat-members" id="privateChatMembers" hidden>
+              <input id="privateMemberSearchInput" type="search" placeholder="Search member" autocomplete="off" />
+              <select id="privateMemberSelect"></select>
+              <input class="admin-send-as-search" id="adminPrivateSendAsSearchInput" type="search" placeholder="Search user" aria-label="Search send-as users" autocomplete="off" />
+              <select class="admin-send-as-select" id="adminPrivateSendAsSelect" aria-label="Send as"></select>
+              <select class="admin-visibility-select" id="adminPrivateVisibilitySelect" aria-label="Group message visibility">
+                <option value="all">All can see</option>
+                <option value="hide-target">Hide from selected user</option>
+                <option value="only-target">Only selected user</option>
+              </select>
+              <select id="privateSendModeSelect">
+                <option value="direct">Private to selected user</option>
+                <option value="group">Public group chat</option>
+                <option value="note">Hidden admin-only note</option>
+              </select>
+            </div>
+            <div class="private-chat-feed" id="privateChatFeed" aria-live="polite" hidden></div>
+            <form class="private-chat-form" id="privateChatForm" hidden>
+              <input id="privateChatInput" type="text" maxlength="180" placeholder="Message admin" autocomplete="off" />
+              <input id="privateChatMediaInput" type="file" accept="image/*" hidden />
+              <button class="media-button" id="privateChatMediaBtn" type="button" aria-label="Attach photo" title="Attach photo">+</button>
+              <button class="send-button" type="submit">Send</button>
+              <div class="media-preview" id="privateChatMediaPreview"></div>
+            </form>
+          </section>
+        </aside>
+
+        <section class="admin-panel" id="adminPanel" hidden>
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Admin</p>
+              <h2>Control Panel</h2>
+            </div>
+            <span class="timer" id="adminStatus">Locked</span>
+          </div>
+
+          <div class="admin-grid">
+            <div class="admin-stat">
+              <span>Buyers</span>
+              <strong id="adminBuyerCount">0</strong>
+            </div>
+            <div class="admin-stat">
+              <span>Transactions</span>
+              <strong id="adminTransactionCount">0</strong>
+            </div>
+            <div class="admin-stat">
+              <span>Receipts</span>
+              <strong id="adminReceiptCount">0</strong>
+            </div>
+            <div class="admin-stat">
+              <span>Chat Messages</span>
+              <strong id="adminChatCount">0</strong>
+            </div>
+          </div>
+
+          <nav class="admin-tabs" aria-label="Admin controls">
+            <button class="active" type="button" data-admin-tab="announcements">Announcements</button>
+            <button type="button" data-admin-tab="store">Store</button>
+            <button type="button" data-admin-tab="preorder">Preorder</button>
+            <button type="button" data-admin-tab="buyers">Buyers</button>
+            <button type="button" data-admin-tab="trolls">Troll Controls</button>
+            <button type="button" data-admin-tab="orders">Orders</button>
+            <button type="button" data-admin-tab="accounts">Accounts</button>
+            <button type="button" data-admin-tab="moderation">Moderation</button>
+          </nav>
+
+          <div class="admin-tab-panel active" data-admin-panel="announcements">
+            <form class="admin-form" id="adminBroadcastForm">
+              <div class="admin-form-head">
+                <h3>Broadcast</h3>
+                <span>Pin a system update and notify the group</span>
+              </div>
+              <label>
+                <span>Announcement title</span>
+                <input id="adminAnnouncementTitle" type="text" maxlength="42" placeholder="System update" />
+              </label>
+              <label>
+                <span>Group chat message</span>
+                <textarea id="adminAnnouncementText" maxlength="180" placeholder="Write a system message for the group chat"></textarea>
+              </label>
+              <button class="primary-button" type="submit">Broadcast</button>
+            </form>
+          </div>
+
+          <div class="admin-tab-panel" data-admin-panel="store">
+            <section class="admin-tool-card product-admin-card">
+              <div class="admin-form-head">
+                <h3>Product Catalog</h3>
+                <span>Add products, images, details, and sale configuration</span>
+              </div>
+              <label>
+                <span>Edit product</span>
+                <select id="adminProductSelect">
+                  <option value="">New product</option>
+                </select>
+              </label>
+              <div class="admin-split">
+                <label>
+                  <span>Name</span>
+                  <input id="adminProductNameInput" type="text" maxlength="60" placeholder="Product name" />
+                </label>
+                <label>
+                  <span>Category</span>
+                  <select id="adminProductCategorySelect"></select>
+                </label>
+              </div>
+              <div class="admin-inline">
+                <input id="adminNewCategoryInput" type="text" maxlength="32" placeholder="Add category" />
+                <button class="ghost-button" id="adminAddCategoryBtn" type="button">Add Category</button>
+                <button class="ghost-button" id="adminRemoveCategoryBtn" type="button">Remove Category</button>
+              </div>
+              <div class="admin-category-list" id="adminCategoryList"></div>
+              <div class="admin-split">
+                <label>
+                  <span>Type</span>
+                  <input id="adminProductTypeInput" type="text" maxlength="32" placeholder="Bundle" />
+                </label>
+                <label>
+                  <span>Badge</span>
+                  <input id="adminProductBannerInput" type="text" maxlength="18" placeholder="Sale" />
+                </label>
+              </div>
+              <div class="admin-split">
+                <label>
+                  <span>Menu order</span>
+                  <input id="adminProductSortInput" type="number" min="1" max="999" value="1" />
+                </label>
+                <label class="admin-check">
+                  <input id="adminProductFeaturedInput" type="checkbox" />
+                  <span>Big highlighted top item</span>
+                </label>
+              </div>
+              <label>
+                <span>Product detail</span>
+                <textarea id="adminProductDescriptionInput" maxlength="160" placeholder="Short product detail"></textarea>
+              </label>
+              <div class="admin-split">
+                <label>
+                  <span>Original price</span>
+                  <input id="adminProductOriginalPriceInput" type="number" min="0" max="999999" value="0" />
+                </label>
+                <label>
+                  <span>Sale price</span>
+                  <input id="adminProductSalePriceInput" type="number" min="0" max="999999" value="0" />
+                </label>
+              </div>
+              <label>
+                <span>Wholesale tiers</span>
+                <textarea id="adminProductWholesaleInput" maxlength="160" placeholder="3 pcs = 1800&#10;6 pcs = 1600"></textarea>
+              </label>
+              <div class="admin-split">
+                <label class="admin-check">
+                  <input id="adminProductSaleEnabledInput" type="checkbox" />
+                  <span>Sale active</span>
+                </label>
+                <label>
+                  <span>Sale ends</span>
+                  <input id="adminProductSaleEndsInput" type="datetime-local" />
+                </label>
+              </div>
+              <div class="admin-split">
+                <label>
+                  <span>Stock</span>
+                  <input id="adminProductStockInput" type="number" min="0" max="9999" value="0" />
+                </label>
+                <label class="admin-check">
+                  <input id="adminProductOutOfStockInput" type="checkbox" />
+                  <span>Out of stock / show preorder</span>
+                </label>
+              </div>
+              <div class="admin-split">
+                <label>
+                  <span>Preorder (Bulk Buy) date</span>
+                  <input id="adminProductBulkBuyAtInput" type="datetime-local" />
+                </label>
+                <label>
+                  <span>Estimated incoming</span>
+                  <input id="adminProductAvailableAtInput" type="datetime-local" />
+                </label>
+              </div>
+              <div class="admin-split">
+                <label class="admin-check">
+                  <input id="adminProductPreorderInput" type="checkbox" />
+                  <span>Allow Preorder (Bulk Buy)</span>
+                </label>
+              </div>
+              <label>
+                <span>Picture URL</span>
+                <input id="adminProductImageUrlInput" type="url" placeholder="https://..." />
+              </label>
+              <label>
+                <span>Upload picture</span>
+                <input id="adminProductImageInput" type="file" accept="image/*" />
+              </label>
+              <div class="admin-actions">
+                <button class="ghost-button" id="adminNewProductBtn" type="button">New</button>
+                <button class="ghost-button" id="adminSaveProductBtn" type="button">Save Product</button>
+                <button class="ghost-button" id="adminRemoveProductBtn" type="button">Remove Product</button>
+              </div>
+              <div class="admin-product-list" id="adminProductList"></div>
+            </section>
+          </div>
+
+          <div class="admin-tab-panel" data-admin-panel="preorder">
+            <section class="admin-tool-card">
+              <div class="admin-form-head">
+                <h3>Preorder (Bulk Buy)</h3>
+                <span>Control preorder availability, out-of-stock status, and incoming dates</span>
+              </div>
+              <label>
+                <span>Product</span>
+                <select id="adminPreorderProductSelect"></select>
+              </label>
+              <div class="admin-split">
+                <label class="admin-check">
+                  <input id="adminPreorderEnabledInput" type="checkbox" />
+                  <span>Open preorder</span>
+                </label>
+                <label class="admin-check">
+                  <input id="adminPreorderOutOfStockInput" type="checkbox" />
+                  <span>Set out of stock</span>
+                </label>
+              </div>
+              <div class="admin-split">
+                <label>
+                  <span>Preorder price</span>
+                  <input id="adminPreorderPriceInput" type="number" min="0" max="999999" value="0" />
+                </label>
+                <label>
+                  <span>Preorder stock</span>
+                  <input id="adminPreorderStockInput" type="number" min="0" max="9999" value="0" />
+                </label>
+              </div>
+              <div class="admin-split">
+                <label>
+                  <span>Preorder ends</span>
+                  <input id="adminPreorderEndsAtInput" type="datetime-local" />
+                </label>
+                <label>
+                  <span>Preorder (Bulk Buy) date</span>
+                  <input id="adminPreorderBulkBuyAtInput" type="datetime-local" />
+                </label>
+              </div>
+              <div class="admin-split">
+                <label>
+                  <span>Estimated incoming</span>
+                  <input id="adminPreorderAvailableAtInput" type="datetime-local" />
+                </label>
+              </div>
+              <div class="admin-actions">
+                <button class="ghost-button" id="adminSavePreorderBtn" type="button">Save Preorder</button>
+                <button class="ghost-button" id="adminClosePreorderBtn" type="button">Close Preorder</button>
+              </div>
+              <div class="admin-product-list" id="adminPreorderProductList"></div>
+            </section>
+          </div>
+
+          <div class="admin-tab-panel" data-admin-panel="buyers">
+            <div class="admin-control-grid">
+              <section class="admin-tool-card">
+              <div class="admin-form-head">
+                <h3>Buyer Controls</h3>
+                <span>Adjust group discount demand manually</span>
+              </div>
+              <label class="admin-check">
+                <input id="adminBuyerControlsToggle" type="checkbox" />
+                <span>Buyer controls enabled</span>
+              </label>
+              <label>
+                <span>Buyer amount</span>
+                <input id="adminBuyerAmountInput" type="number" min="0" max="999" value="5" />
+              </label>
+              <div class="admin-actions">
+                <button class="ghost-button" id="adminPulseBtn" type="button">Random Pulse</button>
+                <button class="ghost-button" id="adminAddBuyersBtn" type="button">Add Buyers</button>
+                <button class="ghost-button" id="adminSetBuyersBtn" type="button">Set Buyers</button>
+              </div>
+            </section>
+
+            <section class="admin-tool-card">
+              <div class="admin-form-head">
+                <h3>Golden Ticket</h3>
+                <span>Trigger or configure the next draw</span>
+              </div>
+              <label class="admin-check">
+                <input id="adminGoldenTicketToggle" type="checkbox" />
+                <span>Golden Ticket enabled</span>
+              </label>
+              <label>
+                <span>Next draw in transactions</span>
+                <input id="adminGoldenDistanceInput" type="number" min="1" max="50" value="50" />
+              </label>
+              <div class="admin-actions">
+                <button class="ghost-button" id="adminSetGoldenBtn" type="button">Set Next Draw</button>
+                <button class="ghost-button" id="adminRunGoldenBtn" type="button">Run Draw Now</button>
+              </div>
+            </section>
+            </div>
+          </div>
+
+          <div class="admin-tab-panel" data-admin-panel="orders">
+            <section class="admin-tool-card">
+              <div class="admin-form-head">
+                <h3>Orders</h3>
+                <span>Review receipt submissions by status</span>
+              </div>
+              <div class="admin-actions">
+                <button class="ghost-button" type="button" data-clear-orders="all">Delete All Orders</button>
+              </div>
+              <input id="adminReceiptSearchInput" type="search" placeholder="Search orders" autocomplete="off" />
+              <div class="admin-status-tabs" id="adminReceiptStatusTabs" aria-label="Receipt status filters"></div>
+              <div class="admin-receipt-list" id="adminReceiptList"></div>
+              <div class="admin-pagination" id="adminReceiptPagination"></div>
+            </section>
+          </div>
+
+          <div class="admin-tab-panel" data-admin-panel="trolls">
+            <div class="admin-control-grid">
+              <section class="admin-tool-card">
+                <div class="admin-form-head">
+                  <h3>Troll Automation</h3>
+                  <span>Fire selected admin identities when site events happen</span>
+                </div>
+                <label class="admin-check">
+                  <input id="adminTrollAutomationToggle" type="checkbox" />
+                  <span>Automation enabled</span>
+                </label>
+                <div class="admin-split">
+                  <label class="admin-check">
+                    <input id="adminTrollRoundRobinToggle" type="checkbox" />
+                    <span>Round robin matching accounts</span>
+                  </label>
+                  <label>
+                    <span>Max parallel trolls</span>
+                    <input id="adminTrollMaxParallelInput" type="number" min="1" max="20" value="1" />
+                  </label>
+                </div>
+                <div class="admin-split">
+                  <label>
+                    <span>Account</span>
+                    <select id="adminTrollAccountSelect"></select>
+                  </label>
+                  <label>
+                    <span>Trigger</span>
+                    <select id="adminTrollTriggerSelect">
+                      <option value="visit">Site visit</option>
+                      <option value="purchase">Purchase</option>
+                      <option value="account-created">Account created</option>
+                      <option value="first-message-day">User first message of day</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="admin-split">
+                  <label>
+                    <span>Action</span>
+                    <select id="adminTrollActionSelect">
+                      <option value="group-message">Message in GC</option>
+                      <option value="photo-message">Photo in GC</option>
+                      <option value="private-message">Private admin message</option>
+                      <option value="receipt">Send receipt</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Receipt units</span>
+                    <input id="adminTrollReceiptUnitsInput" type="number" min="1" max="20" value="1" />
+                  </label>
+                </div>
+                <label>
+                  <span>Receipt product</span>
+                  <select id="adminTrollProductSelect"></select>
+                </label>
+                <div class="admin-split">
+                  <label>
+                    <span>Delay seconds</span>
+                    <input id="adminTrollDelaySecondsInput" type="number" min="0" max="300" value="0" />
+                  </label>
+                  <label>
+                    <span>Random extra seconds</span>
+                    <input id="adminTrollDelayJitterInput" type="number" min="0" max="300" value="0" />
+                  </label>
+                </div>
+                <label>
+                  <span>Message template</span>
+                  <textarea id="adminTrollMessageInput" maxlength="180" placeholder="New order posted. Thanks admin."></textarea>
+                </label>
+                <div class="admin-split">
+                  <label>
+                    <span>Upload photo</span>
+                    <input id="adminTrollPhotoInput" type="file" accept="image/*" />
+                  </label>
+                  <label>
+                    <span>Upload receipt</span>
+                    <input id="adminTrollReceiptImageInput" type="file" accept="image/*" />
+                  </label>
+                </div>
+                <div class="admin-upload-summary" id="adminTrollUploadSummary"></div>
+                <div class="admin-actions">
+                  <button class="ghost-button" id="adminNewTrollRuleBtn" type="button">New Rule</button>
+                  <button class="ghost-button" id="adminSaveTrollRuleBtn" type="button">Save Rule</button>
+                  <button class="ghost-button" id="adminDeleteTrollRuleBtn" type="button">Delete Rule</button>
+                </div>
+                <div class="admin-account-list" id="adminTrollRuleList"></div>
+              </section>
+
+              <section class="admin-tool-card">
+                <div class="admin-form-head">
+                  <h3>Member Count Controls</h3>
+                  <span>Adjust shown online and member totals from real activity</span>
+                </div>
+                <label class="admin-check">
+                  <input id="adminTrollMemberStatsToggle" type="checkbox" />
+                  <span>Adjusted member stats enabled</span>
+                </label>
+                <div class="admin-split">
+                  <label>
+                    <span>Active multiplier</span>
+                    <input id="adminTrollActiveMultiplierInput" type="number" min="1" max="50" value="1" />
+                  </label>
+                  <label>
+                    <span>Total multiplier</span>
+                    <input id="adminTrollTotalMultiplierInput" type="number" min="1" max="50" value="1" />
+                  </label>
+                </div>
+                <label>
+                  <span>Extra inactive members</span>
+                  <input id="adminTrollInactiveMembersInput" type="number" min="0" max="9999" value="0" />
+                </label>
+                <div class="admin-actions">
+                  <button class="ghost-button" id="adminSaveTrollStatsBtn" type="button">Save Member Stats</button>
+                </div>
+                <div class="admin-metric-preview" id="adminTrollMemberStatsPreview"></div>
+              </section>
+            </div>
+          </div>
+
+          <div class="admin-tab-panel" data-admin-panel="accounts">
+            <section class="admin-tool-card">
+              <div class="admin-form-head">
+                <h3>Admin Identities</h3>
+                <span>Create accounts or act as a tracked member with an admin label</span>
+              </div>
+              <div class="admin-split">
+                <label>
+                  <span>Username</span>
+                  <input id="adminQuickUsernameInput" type="text" maxlength="18" placeholder="customer-01" />
+                </label>
+                <label>
+                  <span>Password</span>
+                  <input id="adminQuickPasswordInput" type="password" minlength="6" maxlength="64" placeholder="Minimum 6 characters" />
+                </label>
+              </div>
+              <div class="admin-actions">
+                <button class="ghost-button" id="adminCreateQuickAccountBtn" type="button">Create Account</button>
+                <button class="ghost-button" id="adminRestoreAdminHandleBtn" type="button">Use Admin Handle</button>
+              </div>
+              <div class="admin-account-list" id="adminAccountList"></div>
+              <div class="admin-member-list" id="adminMemberList"></div>
+            </section>
+          </div>
+
+          <div class="admin-tab-panel" data-admin-panel="moderation">
+            <section class="admin-tool-card danger-zone">
+              <div class="admin-form-head">
+                <h3>Moderation</h3>
+                <span>Manage shared chat records</span>
+              </div>
+              <div class="admin-actions">
+                <button class="ghost-button" id="adminClearChatBtn" type="button">Clear Chat</button>
+                <button class="ghost-button" id="adminClearReceiptsBtn" type="button">Clear Receipts</button>
+                <button class="ghost-button" type="button" data-clear-orders="all">Delete All Orders</button>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="golden-overlay" id="goldenOverlay" aria-live="assertive">
+      <div class="golden-card">
+        <p>GOLDEN TICKET</p>
+        <h2 id="goldenReceipt">Receipt #DETI-0000</h2>
+        <span>Order refunded 100%.</span>
+      </div>
+    </div>
+
+    <div class="auth-overlay" id="authOverlay" aria-hidden="true">
+      <form class="auth-card" id="authForm">
+        <button class="icon-button auth-close" id="authCloseBtn" type="button" aria-label="Close auth">x</button>
+        <p class="eyebrow" id="authModeLabel">Join Community</p>
+        <h2 id="authTitle">Create your pepfactory account</h2>
+        <input id="authUsernameInput" type="text" maxlength="18" placeholder="Username" autocomplete="username" required />
+        <input id="authPasswordInput" type="password" minlength="6" maxlength="64" placeholder="Password" autocomplete="new-password" required />
+        <p class="auth-error" id="authError" role="alert"></p>
+        <button class="primary-button" type="submit">Continue</button>
+      </form>
+    </div>
+
+    <div class="checkout-overlay" id="checkoutOverlay" aria-hidden="true">
+      <section class="checkout-card" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
+        <button class="icon-button checkout-close" id="checkoutCloseBtn" type="button" aria-label="Close checkout">x</button>
+        <div class="checkout-head">
+          <div>
+            <p class="eyebrow">Kiosk Checkout</p>
+            <h2 id="checkoutTitle">Review order</h2>
+          </div>
+          <strong id="checkoutModalTotal">PHP 0</strong>
+        </div>
+        <div class="checkout-grid">
+          <section class="checkout-block">
+            <div class="checkout-block-head">
+              <strong>Your cart</strong>
+              <span id="checkoutModalCount">0 pcs</span>
+            </div>
+            <div class="checkout-cart-list" id="checkoutModalList"></div>
+          </section>
+          <section class="checkout-block">
+            <div class="checkout-block-head">
+              <strong>Add before checkout</strong>
+              <span>Wholesale and cheap add-ons</span>
+            </div>
+            <div class="checkout-upsell-list" id="checkoutUpsellList"></div>
+          </section>
+        </div>
+        <div class="checkout-payment">
+          <div class="payment-upload">
+            <label for="paymentReceiptInput">Upload GCash receipt photo</label>
+            <input id="paymentReceiptInput" type="file" accept="image/*" required />
+            <div class="payment-preview" id="paymentReceiptPreview" hidden>
+              <img id="paymentReceiptImage" alt="Uploaded payment receipt preview" />
+              <div>
+                <strong id="paymentReceiptName">Receipt photo</strong>
+                <button class="ghost-button" id="removePaymentReceiptBtn" type="button">Remove</button>
+              </div>
+            </div>
+          </div>
+          <div class="checkout-actions">
+            <button class="ghost-button" id="checkoutContinueBtn" type="button">Keep Shopping</button>
+            <button class="primary-button" id="checkoutSubmitBtn" type="button">Submit Anonymous Order</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="blocked-overlay" id="blockedNotice" hidden>
+      <div class="blocked-card">
+        <strong id="blockedNoticeTitle">Account blocked</strong>
+        <span id="blockedNoticeText">This account is blocked.</span>
+        <input id="blockedReplacementUsernameInput" type="text" maxlength="18" placeholder="New username" autocomplete="username" />
+        <input id="blockedReplacementPasswordInput" type="password" minlength="6" maxlength="64" placeholder="New password" autocomplete="new-password" />
+        <p class="auth-error" id="blockedReplacementError" role="alert"></p>
+        <button class="primary-button" id="blockedReplacementBtn" type="button">Create account</button>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

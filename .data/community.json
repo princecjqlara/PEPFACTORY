@@ -1,0 +1,136 @@
+{
+  "buyerCount": 0,
+  "transactionCount": 0,
+  "receipts": [],
+  "chat": [],
+  "announcements": [],
+  "directMessages": [],
+  "members": {},
+  "moderation": {
+    "blocked": {},
+    "timeouts": {},
+    "replacements": [],
+    "clearChatAt": 0,
+    "clearReceiptsAt": 0
+  },
+  "products": [
+    {
+      "id": "deti-core",
+      "name": "DETI Core Stack",
+      "category": "Core",
+      "type": "Flagship",
+      "description": "Daily core bundle for the main DETI stack.",
+      "originalPrice": 2499,
+      "salePrice": 1999,
+      "wholesaleTiers": [
+        {
+          "minQty": 3,
+          "unitPrice": 1799
+        }
+      ],
+      "saleEnabled": true,
+      "saleEndsAt": 1779589533625,
+      "stock": 42,
+      "preorderEnabled": false,
+      "preorderPrice": 0,
+      "preorderStock": 0,
+      "preorderEndsAt": null,
+      "bulkBuyAt": null,
+      "availableAt": null,
+      "banner": "Sale",
+      "featured": true,
+      "sortOrder": 1,
+      "poolTarget": 24,
+      "poolJoined": 17,
+      "image": "assets/deti-storefront.png"
+    },
+    {
+      "id": "deti-night",
+      "name": "Night Recovery Pack",
+      "category": "Recovery",
+      "type": "Bundle",
+      "description": "Evening recovery bundle for repeat buyers.",
+      "originalPrice": 2199,
+      "salePrice": 0,
+      "wholesaleTiers": [
+        {
+          "minQty": 3,
+          "unitPrice": 1999
+        },
+        {
+          "minQty": 6,
+          "unitPrice": 1799
+        }
+      ],
+      "saleEnabled": false,
+      "saleEndsAt": null,
+      "stock": 31,
+      "preorderEnabled": false,
+      "preorderPrice": 0,
+      "preorderStock": 0,
+      "preorderEndsAt": null,
+      "bulkBuyAt": null,
+      "availableAt": null,
+      "banner": "Bundle",
+      "featured": false,
+      "sortOrder": 3,
+      "poolTarget": 18,
+      "poolJoined": 9,
+      "image": "assets/deti-storefront.png"
+    },
+    {
+      "id": "deti-focus",
+      "name": "Focus Lab Kit",
+      "category": "Performance",
+      "type": "Limited",
+      "description": "Limited focus set for productivity sessions.",
+      "originalPrice": 1899,
+      "salePrice": 1499,
+      "wholesaleTiers": [
+        {
+          "minQty": 3,
+          "unitPrice": 1399
+        }
+      ],
+      "saleEnabled": true,
+      "saleEndsAt": 1779546333625,
+      "stock": 26,
+      "preorderEnabled": false,
+      "preorderPrice": 0,
+      "preorderStock": 0,
+      "preorderEndsAt": null,
+      "bulkBuyAt": null,
+      "availableAt": null,
+      "banner": "Hot",
+      "featured": true,
+      "sortOrder": 2,
+      "poolTarget": 30,
+      "poolJoined": 22,
+      "image": "assets/deti-storefront.png"
+    }
+  ],
+  "productCategories": [
+    "Core",
+    "Recovery",
+    "Performance"
+  ],
+  "demoCatalogSeeded": true,
+  "buyerControlsEnabled": true,
+  "goldenTicketEnabled": true,
+  "trollControls": {
+    "enabled": false,
+    "roundRobin": true,
+    "maxParallel": 1,
+    "selectedRuleId": "",
+    "memberStatsEnabled": false,
+    "activeMultiplier": 1,
+    "totalMultiplier": 1,
+    "inactiveMembers": 0,
+    "cursorByTrigger": {},
+    "firstMessageDayByUser": {},
+    "trollAccounts": [],
+    "rules": []
+  },
+  "dataResetVersion": "2026-05-23-admin-only-clean",
+  "dataResetAt": 1779503133625
+}
