@@ -862,7 +862,14 @@ function normalizeProduct(product, index = 0) {
     originalPrice,
     salePrice,
     wholesaleTiers: normalizeWholesaleTiers(product.wholesaleTiers, originalPrice),
-    variants: normalizeProductVariants(product.variants, { originalPrice, salePrice, wholesaleTiers: product.wholesaleTiers }),
+    preorderWholesaleTiers: normalizeWholesaleTiers(product.preorderWholesaleTiers ?? product.preorderWholesale ?? [], preorderPrice || originalPrice),
+    variants: normalizeProductVariants(product.variants, {
+      originalPrice,
+      salePrice,
+      preorderPrice,
+      wholesaleTiers: product.wholesaleTiers,
+      preorderWholesaleTiers: product.preorderWholesaleTiers,
+    }),
     featured: Boolean(product.featured || product.highlighted || product.big),
     sortOrder: clampNumber(product.sortOrder ?? product.menuOrder ?? product.order, 1, 999, index + 1),
     saleEnabled: Boolean(product.saleEnabled),
@@ -901,6 +908,7 @@ function normalizeProductVariants(variants, product = {}) {
         salePrice,
         preorderPrice,
         wholesaleTiers: normalizeWholesaleTiers(variant.wholesaleTiers, originalPrice),
+        preorderWholesaleTiers: normalizeWholesaleTiers(variant.preorderWholesaleTiers ?? variant.preorderWholesale ?? [], preorderPrice || product.preorderPrice || originalPrice),
       };
     })
     .filter((variant) => variant && variant.originalPrice > 0);
@@ -1057,10 +1065,14 @@ function parseProductVariantLine(line) {
 
   if (!label || !originalPrice) return null;
 
-  const variant = { label, originalPrice, salePrice: 0, preorderPrice: 0, wholesaleTiers: [] };
+  const variant = { label, originalPrice, salePrice: 0, preorderPrice: 0, wholesaleTiers: [], preorderWholesaleTiers: [] };
   parts.slice(1).forEach((part) => {
     const normalized = part.replace(/php/gi, "").trim();
     const price = Number(normalized.match(/\d+/)?.[0] || 0);
+    if (/preorder.*(wholesale|tier)|(wholesale|tier).*preorder/i.test(normalized)) {
+      variant.preorderWholesaleTiers = parseWholesaleTiers(normalized.replace(/preorder|wholesale|tiers?/gi, ""), variant.preorderPrice || originalPrice);
+      return;
+    }
     if (/wholesale|tier/i.test(normalized)) {
       variant.wholesaleTiers = parseWholesaleTiers(normalized.replace(/wholesale|tiers?/gi, ""), originalPrice);
       return;
@@ -1090,6 +1102,7 @@ function formatProductVariants(variants = []) {
       if (variant.salePrice) parts.push(`sale ${variant.salePrice}`);
       if (variant.preorderPrice) parts.push(`preorder ${variant.preorderPrice}`);
       if (variant.wholesaleTiers.length) parts.push(`wholesale ${formatWholesaleInline(variant.wholesaleTiers)}`);
+      if (variant.preorderWholesaleTiers.length) parts.push(`preorder wholesale ${formatWholesaleInline(variant.preorderWholesaleTiers)}`);
       return parts.join(" | ");
     })
     .join("\n");
@@ -1122,6 +1135,9 @@ function getVariantPreorderPrice(product, variant = null) {
 }
 
 function getVariantWholesaleTiers(product, variant = null) {
+  if (product.preorderEnabled) {
+    return variant ? variant.preorderWholesaleTiers : product.preorderWholesaleTiers;
+  }
   return variant ? variant.wholesaleTiers : product.wholesaleTiers;
 }
 
@@ -1202,9 +1218,10 @@ function renderWholesaleContent(product, variant = null) {
   const tiers = getWholesaleTiers(product, variant);
   if (!tiers.length) return "";
   const cheapest = getCheapestWholesaleTier(product, variant);
+  const label = product.preorderEnabled ? "Lowest preorder wholesale" : "Lowest wholesale";
   return `
     <div class="wholesale-strip-head">
-      <span>Lowest wholesale: ${escapeHtml(formatWholesaleTierLabel(cheapest))} at ${cheapest.minQty}+ pcs</span>
+      <span>${label}: ${escapeHtml(formatWholesaleTierLabel(cheapest))} at ${cheapest.minQty}+ pcs</span>
       <button type="button" data-toggle-wholesale>Show all</button>
     </div>
     <div class="wholesale-tier-list" hidden>
@@ -3858,7 +3875,7 @@ function loadAdminPreorderForm(productId, options = {}) {
   els.adminPreorderOutOfStockInput.checked = product.stock <= 0;
   els.adminPreorderPriceInput.value = product.preorderPrice || "";
   els.adminPreorderStockInput.value = product.preorderStock || "";
-  els.adminPreorderWholesaleInput.value = formatWholesaleTiers(product.wholesaleTiers);
+  els.adminPreorderWholesaleInput.value = formatWholesaleTiers(product.preorderWholesaleTiers);
   els.adminPreorderEndsAtInput.value = formatDateTimeLocal(product.preorderEndsAt);
   els.adminPreorderBulkBuyAtInput.value = formatDateTimeLocal(product.bulkBuyAt);
   els.adminPreorderBulkBuyRepeatTimeInput.value = product.bulkBuyRepeatTime || "";
@@ -3878,7 +3895,7 @@ async function saveAdminPreorderSettings({ close = false } = {}) {
   const outOfStock = close ? product.stock <= 0 : els.adminPreorderOutOfStockInput.checked;
   const preorderPrice = close ? 0 : getAdminNumber(els.adminPreorderPriceInput, 0, 0, 999999);
   const preorderStock = close ? 0 : getAdminNumber(els.adminPreorderStockInput, 0, 0, 9999);
-  const wholesaleTiers = close ? product.wholesaleTiers || [] : parseWholesaleTiers(els.adminPreorderWholesaleInput.value, preorderPrice || product.originalPrice);
+  const preorderWholesaleTiers = close ? product.preorderWholesaleTiers || [] : parseWholesaleTiers(els.adminPreorderWholesaleInput.value, preorderPrice || product.originalPrice);
   const preorderEndsAt = close ? null : parseDateTimeLocal(els.adminPreorderEndsAtInput.value);
   const bulkBuyAt = close ? null : parseDateTimeLocal(els.adminPreorderBulkBuyAtInput.value);
   const bulkBuyRepeatDays = close ? [] : getSelectedWeekdays("preorderBulkBuyRepeat");
@@ -3892,7 +3909,7 @@ async function saveAdminPreorderSettings({ close = false } = {}) {
     preorderEnabled: enabled,
     preorderPrice,
     preorderStock,
-    wholesaleTiers,
+    preorderWholesaleTiers,
     preorderEndsAt,
     bulkBuyAt,
     bulkBuyRepeatDays,
