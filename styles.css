@@ -1819,11 +1819,12 @@ h2 {
 }
 
 .deal-menu-button em {
+  white-space: nowrap;
   border-radius: 999px;
-  padding: 5px 8px;
+  padding: 5px 7px;
   color: #fff;
   background: var(--pink-dark);
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   font-style: normal;
   font-weight: 950;
 }

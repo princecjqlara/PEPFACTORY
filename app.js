@@ -1520,6 +1520,7 @@ function renderDealHighlights(product, variant = null, mode = "") {
   const originalPrice = getVariantOriginalPrice(product, variant);
   const displayPrice = getProductDisplayPrice(product, variant);
   const salePercent = getDiscountPercent(originalPrice, displayPrice);
+  const wholesaleTiers = getWholesaleTiers(product, variant, mode);
   const wholesale = getCheapestWholesaleTier(product, variant, mode);
   const wholesaleBasePrice = getWholesaleBasePrice(product, variant, mode);
   const wholesalePercent = wholesale ? wholesale.discountPercent || getDiscountPercent(getWholesaleBasePrice(product, variant, mode), wholesale.unitPrice) : 0;
@@ -1531,9 +1532,11 @@ function renderDealHighlights(product, variant = null, mode = "") {
     salePercent
       ? `<span class="hot" role="menuitem"><b>Today sale</b><strong>${escapeHtml(formatMoney(displayPrice))}</strong><em>${escapeHtml(formatPercent(salePercent))}% off</em><small>Was ${escapeHtml(formatMoney(originalPrice))}</small></span>`
       : "",
-    wholesale
-      ? `<span role="menuitem"><b>${wholesale.minQty}+ pcs bundle</b><strong>${escapeHtml(formatMoney(wholesale.unitPrice))} each</strong>${wholesalePercent ? `<em>${escapeHtml(formatPercent(wholesalePercent))}% off</em>` : ""}<small>${escapeHtml(formatWholesaleSavings(wholesale, wholesaleBasePrice))}</small></span>`
-      : "",
+    ...wholesaleTiers.map((tier) => {
+      const tierPercent = tier.discountPercent || getDiscountPercent(wholesaleBasePrice, tier.unitPrice);
+      const savings = formatWholesaleSavings(tier, wholesaleBasePrice);
+      return `<span role="menuitem"><b>${tier.minQty}+ pcs bundle</b><strong>${escapeHtml(formatMoney(tier.unitPrice))} each</strong>${tierPercent ? `<em>${escapeHtml(formatPercent(tierPercent))}% off</em>` : ""}<small>${escapeHtml(savings || "Bundle pricing available")}</small></span>`;
+    }),
     preorderPercent
       ? `<span role="menuitem"><b>Preorder price</b><strong>${escapeHtml(formatMoney(preorderPrice))}</strong><em>${escapeHtml(formatPercent(preorderPercent))}% off</em><small>Reserve now, pay preorder rate</small></span>`
       : "",
@@ -1544,9 +1547,9 @@ function renderDealHighlights(product, variant = null, mode = "") {
       <button class="deal-menu-button" type="button" data-toggle-deals aria-expanded="false">
         <span>
           <b>${bestPercent ? `${escapeHtml(formatPercent(bestPercent))}% off` : "Best deals"}</b>
-          <small>${wholesale ? `${wholesale.minQty}+ pc bundle available` : preorderPercent ? "Preorder deal open" : "Today sale active"}</small>
+          <small>${wholesale ? `${wholesaleTiers.length} bundle tier${wholesaleTiers.length === 1 ? "" : "s"} inside` : preorderPercent ? "Preorder deal open" : "Today sale active"}</small>
         </span>
-        <em>View</em>
+        <em>Get more discounts</em>
       </button>
       <div class="deal-menu" role="menu" hidden>
         <div class="deal-menu-hero">
@@ -1670,11 +1673,7 @@ function updateVariantCardPricing(control) {
   if (price) {
     price.innerHTML = renderProductPrice(product, variant, isPreorderMode(product, mode) ? "Preorder price" : "Current price", mode);
   }
-  if (wholesale) {
-    const content = renderWholesaleContent(product, variant, mode);
-    wholesale.innerHTML = content;
-    wholesale.hidden = !content;
-  }
+  if (wholesale) wholesale.hidden = true;
   if (deals) {
     const nextDeals = renderDealHighlights(product, variant, mode);
     deals.outerHTML = nextDeals || `<div data-deals-for="${escapeHtml(product.id)}" hidden></div>`;
@@ -3184,7 +3183,6 @@ function renderTiers() {
     ? preorderProducts
         .map((product) => {
           const variant = getDefaultProductVariant(product);
-          const wholesaleContent = renderWholesaleContent(product, variant, "preorder");
           const ended = isPreorderEnded(product);
           return `
             <article class="product-card bulk-buy-card ${focusedBulkBuyProductId === product.id ? "focused" : ""}" data-bulk-product="${escapeHtml(product.id)}" data-order-mode="preorder">
@@ -3201,7 +3199,6 @@ function renderTiers() {
                 ${renderPreorderSummary(product)}
                 ${renderVariantSelect(product)}
                 ${renderDealHighlights(product, variant, "preorder") || `<div data-deals-for="${escapeHtml(product.id)}" hidden></div>`}
-                <div class="wholesale-strip" data-wholesale-for="${escapeHtml(product.id)}" ${wholesaleContent ? "" : "hidden"}>${wholesaleContent}</div>
               </div>
               <div class="price" data-price-for="${escapeHtml(product.id)}">${renderProductPrice(product, variant, "Preorder price", "preorder")}</div>
               <button class="join-button" type="button" data-add="${escapeHtml(product.id)}" data-order-mode="preorder" ${ended ? "disabled" : ""}>Join now</button>
@@ -3252,7 +3249,6 @@ function renderProducts() {
       const outOfStock = product.stock <= 0;
       const canPreorder = product.preorderEnabled;
       const storeMode = outOfStock && canPreorder ? "preorder" : "stock";
-      const wholesaleContent = renderWholesaleContent(product, variant, storeMode);
       const saleActive = storeMode === "stock" && isProductSaleActive(product, Date.now(), variant);
       const showPreorderSummary = storeMode === "preorder";
       const ended = isPreorderEnded(product);
@@ -3290,7 +3286,6 @@ function renderProducts() {
             }
             ${renderVariantSelect(product)}
             ${renderDealHighlights(product, variant, storeMode) || `<div data-deals-for="${escapeHtml(product.id)}" hidden></div>`}
-            <div class="wholesale-strip" data-wholesale-for="${escapeHtml(product.id)}" ${wholesaleContent ? "" : "hidden"}>${wholesaleContent}</div>
           </div>
           <div class="price" data-price-for="${escapeHtml(product.id)}">${renderProductPrice(product, variant, storeMode === "preorder" ? "Preorder price" : "Current price", storeMode)}</div>
           <div class="product-actions">
