@@ -1615,6 +1615,20 @@ h2 {
   font-weight: 850;
 }
 
+.product-actions {
+  display: grid;
+  gap: 7px;
+}
+
+.product-actions .add-button,
+.product-actions .ghost-button {
+  width: 100%;
+}
+
+.preorder-inline-button {
+  min-height: 38px;
+}
+
 .product-description {
   margin: 0;
   color: var(--muted);
