@@ -1064,6 +1064,29 @@ function getReplacementSignalId(entry) {
   return createdAt ? String(createdAt) : "";
 }
 
+function getProductUpdatedAt(product) {
+  return Math.max(0, Number(product?.updatedAt) || 0);
+}
+
+function mergeProductRecords(existingProducts = [], incomingProducts = []) {
+  const byId = new Map();
+  const addProduct = (product, preferOnTie = false) => {
+    const id = product?.id;
+    if (!id) return;
+    const current = byId.get(id);
+    if (!current || getProductUpdatedAt(product) > getProductUpdatedAt(current) || (preferOnTie && getProductUpdatedAt(product) === getProductUpdatedAt(current))) {
+      byId.set(id, product);
+    }
+  };
+  (Array.isArray(existingProducts) ? existingProducts : []).forEach((product) => addProduct(product, false));
+  (Array.isArray(incomingProducts) ? incomingProducts : []).forEach((product) => addProduct(product, true));
+  return [...byId.values()];
+}
+
+function mergeStringList(existingList = [], incomingList = []) {
+  return [...new Set([...(Array.isArray(existingList) ? existingList : []), ...(Array.isArray(incomingList) ? incomingList : [])].filter(Boolean))];
+}
+
 function normalizeProductVariants(variants, product = {}) {
   const entries = Array.isArray(variants) ? variants : [];
   const normalized = entries
@@ -1821,6 +1844,8 @@ function applyCommunityState(nextCommunityState) {
   ].forEach((key) => {
     mergedCommunityState[key] = mergeDeletedAtMaps(state[key], nextCommunityState?.[key]);
   });
+  mergedCommunityState.products = mergeProductRecords(state.products, nextCommunityState?.products);
+  mergedCommunityState.productCategories = mergeStringList(state.productCategories, nextCommunityState?.productCategories);
   mergedCommunityState.chat = mergeCommunityRecords(state.chat, nextCommunityState?.chat, { limit: 140 });
   mergedCommunityState.directMessages = mergeCommunityRecords(state.directMessages, nextCommunityState?.directMessages, { limit: 300 });
   mergedCommunityState.announcements = mergeCommunityRecords(state.announcements, nextCommunityState?.announcements, { limit: 30, descending: true });
@@ -5613,6 +5638,10 @@ async function saveAdminProduct() {
     saleEndsAt: parseDateTimeLocal(els.adminProductSaleEndsInput.value),
     stock,
     preorderEnabled: els.adminProductPreorderInput.checked || outOfStock || Boolean(bulkBuyAt || bulkBuyRepeatDays.length || availableAt),
+    preorderPrice: existingProduct?.preorderPrice,
+    preorderStock: existingProduct?.preorderStock,
+    preorderWholesaleTiers: existingProduct?.preorderWholesaleTiers,
+    preorderEndsAt: existingProduct?.preorderEndsAt,
     bulkBuyAt,
     bulkBuyRepeatDays,
     bulkBuyRepeatTime,
@@ -5625,6 +5654,15 @@ async function saveAdminProduct() {
   });
 
   await pullCommunityState();
+  const latestProduct = getProducts().find((item) => item.id === product.id) || existingProduct;
+  if (latestProduct) {
+    product.preorderPrice = latestProduct.preorderPrice;
+    product.preorderStock = latestProduct.preorderStock;
+    product.preorderWholesaleTiers = latestProduct.preorderWholesaleTiers;
+    product.preorderEndsAt = latestProduct.preorderEndsAt;
+    product.poolTarget = latestProduct.poolTarget;
+    product.poolJoined = latestProduct.poolJoined;
+  }
   product.updatedAt = Date.now();
   const currentProducts = getProducts();
   const exists = currentProducts.some((item) => item.id === product.id);

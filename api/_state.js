@@ -93,6 +93,29 @@ function getReplacementSignalId(entry) {
   return createdAt ? String(createdAt) : "";
 }
 
+function getProductUpdatedAt(product) {
+  return Math.max(0, Number(product?.updatedAt) || 0);
+}
+
+function mergeProductRecords(existingProducts = [], incomingProducts = []) {
+  const byId = new Map();
+  const addProduct = (product, preferOnTie = false) => {
+    const id = product?.id;
+    if (!id) return;
+    const current = byId.get(id);
+    if (!current || getProductUpdatedAt(product) > getProductUpdatedAt(current) || (preferOnTie && getProductUpdatedAt(product) === getProductUpdatedAt(current))) {
+      byId.set(id, product);
+    }
+  };
+  (Array.isArray(existingProducts) ? existingProducts : []).forEach((product) => addProduct(product, false));
+  (Array.isArray(incomingProducts) ? incomingProducts : []).forEach((product) => addProduct(product, true));
+  return [...byId.values()];
+}
+
+function mergeStringList(existingList = [], incomingList = []) {
+  return [...new Set([...(Array.isArray(existingList) ? existingList : []), ...(Array.isArray(incomingList) ? incomingList : [])].filter(Boolean))];
+}
+
 function applyDeletionMarkers(community) {
   if (Array.isArray(community.products)) {
     community.products = community.products
@@ -182,6 +205,8 @@ function mergeCommunityState(existing = {}, incoming = {}) {
     memberDeletedAt: mergeDeletedAtMaps(existing.memberDeletedAt, incoming.memberDeletedAt),
     replacementDeletedAt: mergeDeletedAtMaps(existing.replacementDeletedAt, incoming.replacementDeletedAt),
     trollRuleDeletedAt: mergeDeletedAtMaps(existing.trollRuleDeletedAt, incoming.trollRuleDeletedAt),
+    products: mergeProductRecords(existing.products, incoming.products),
+    productCategories: mergeStringList(existing.productCategories, incoming.productCategories),
     chat: mergeRecords(existing.chat, incoming.chat, { limit: 140 }),
     directMessages: mergeRecords(existing.directMessages, incoming.directMessages, { limit: 300 }),
     announcements: mergeRecords(existing.announcements, incoming.announcements, { limit: 30, descending: true }),
