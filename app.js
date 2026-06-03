@@ -1282,17 +1282,16 @@ function renderWholesaleContent(product, variant = null, mode = "") {
   const cheapest = getCheapestWholesaleTier(product, variant, mode);
   const basePrice = getWholesaleBasePrice(product, variant, mode);
   const label = isPreorderMode(product, mode) ? "Lowest preorder wholesale" : "Lowest wholesale";
-  const cheapestSavings = formatWholesaleSavings(cheapest, basePrice);
   return `
     <div class="wholesale-strip-head">
-      <span>${label}: ${escapeHtml(formatWholesaleTierLabel(cheapest))} at ${cheapest.minQty}+ pcs${cheapestSavings ? ` / ${escapeHtml(cheapestSavings)}` : ""}</span>
-      <button type="button" data-toggle-wholesale>Show all</button>
+      <span><b>${label}</b>${escapeHtml(formatWholesaleTierLabel(cheapest))} at ${cheapest.minQty}+ pcs</span>
+      <button type="button" data-toggle-wholesale aria-expanded="false">Menu</button>
     </div>
-    <div class="wholesale-tier-list" hidden>
+    <div class="wholesale-tier-list" role="menu" hidden>
       ${tiers
         .map((tier) => {
           const savings = formatWholesaleSavings(tier, basePrice);
-          return `<span>${tier.minQty}+ pcs ${escapeHtml(formatWholesaleTierLabel(tier))}${savings ? ` / ${escapeHtml(savings)}` : ""}</span>`;
+          return `<span role="menuitem"><b>${tier.minQty}+ pcs</b>${escapeHtml(formatWholesaleTierLabel(tier))}${savings ? `<small>${escapeHtml(savings)}</small>` : ""}</span>`;
         })
         .join("")}
     </div>
@@ -1382,6 +1381,20 @@ function updateVariantCardPricing(select) {
     wholesale.innerHTML = content;
     wholesale.hidden = !content;
   }
+}
+
+function closeWholesaleMenus(except = null) {
+  document.querySelectorAll(".wholesale-strip").forEach((strip) => {
+    if (strip === except) return;
+    strip.classList.remove("open");
+    const list = strip.querySelector(".wholesale-tier-list");
+    const button = strip.querySelector("[data-toggle-wholesale]");
+    if (list) list.hidden = true;
+    if (button) {
+      button.textContent = "Menu";
+      button.setAttribute("aria-expanded", "false");
+    }
+  });
 }
 
 function formatScheduleDate(value) {
@@ -5838,11 +5851,18 @@ document.addEventListener("click", (event) => {
     const strip = toggleWholesaleButton.closest(".wholesale-strip");
     const list = strip?.querySelector(".wholesale-tier-list");
     if (list) {
-      const shouldHide = !list.hidden;
-      list.hidden = shouldHide;
-      toggleWholesaleButton.textContent = shouldHide ? "Show all" : "Hide";
+      const shouldOpen = list.hidden;
+      closeWholesaleMenus(strip);
+      list.hidden = !shouldOpen;
+      strip.classList.toggle("open", shouldOpen);
+      toggleWholesaleButton.textContent = shouldOpen ? "Close" : "Menu";
+      toggleWholesaleButton.setAttribute("aria-expanded", String(shouldOpen));
     }
     return;
+  }
+
+  if (!event.target.closest(".wholesale-strip")) {
+    closeWholesaleMenus();
   }
 
   if (addId) {

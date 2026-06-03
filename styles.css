@@ -1656,11 +1656,11 @@ h2 {
 }
 
 .wholesale-strip {
+  position: relative;
   display: grid;
-  gap: 7px;
   border: 1px solid rgba(242, 198, 111, 0.78);
   border-radius: 7px;
-  padding: 8px 9px;
+  padding: 7px 8px;
   background: #fffdf6;
 }
 
@@ -1671,19 +1671,27 @@ h2 {
   gap: 8px;
 }
 
-.wholesale-strip-head span,
-.wholesale-tier-list span {
+.wholesale-strip-head span {
   min-width: 0;
+  display: grid;
+  gap: 1px;
   color: #6d4c08;
   font-size: 0.74rem;
   font-weight: 900;
   overflow-wrap: anywhere;
 }
 
+.wholesale-strip-head span b {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
 .wholesale-strip-head button {
   border: 1px solid rgba(242, 198, 111, 0.9);
   border-radius: 6px;
-  padding: 5px 7px;
+  padding: 6px 9px;
   color: #6d4c08;
   background: #fff;
   font-size: 0.68rem;
@@ -1692,10 +1700,45 @@ h2 {
 }
 
 .wholesale-tier-list {
+  position: absolute;
+  z-index: 35;
+  top: calc(100% + 7px);
+  right: 0;
+  width: min(330px, calc(100vw - 28px));
   display: grid;
-  gap: 4px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(242, 198, 111, 0.62);
+  gap: 7px;
+  border: 1px solid rgba(204, 149, 41, 0.42);
+  border-radius: 8px;
+  padding: 9px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(87, 58, 15, 0.18);
+}
+
+.wholesale-tier-list[hidden] {
+  display: none;
+}
+
+.wholesale-tier-list span {
+  display: grid;
+  gap: 2px;
+  border: 1px solid rgba(242, 198, 111, 0.6);
+  border-radius: 7px;
+  padding: 7px 8px;
+  color: #6d4c08;
+  background: #fffdf6;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.wholesale-tier-list span b {
+  color: var(--ink);
+  font-size: 0.78rem;
+}
+
+.wholesale-tier-list span small {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 850;
 }
 
 .variant-picker {
@@ -3795,8 +3838,12 @@ h2 {
   }
 
   .store-panel .product-card.featured-product .wholesale-strip {
-    font-size: 0.76rem;
-    line-height: 1.35;
+    align-self: start;
+  }
+
+  .store-panel .product-card.featured-product .wholesale-tier-list {
+    right: auto;
+    left: 0;
   }
 
   .store-panel .product-card.featured-product .price {
