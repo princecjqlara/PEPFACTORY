@@ -990,7 +990,7 @@ function getWholesaleSortPrice(tier, fallbackPrice = 0) {
 }
 
 function parseWholesaleTiers(value, basePrice = 0) {
-  const tiers = String(value || "")
+  const tiers = normalizePriceCommas(value)
     .split(/\r?\n|,/)
     .map((line) => {
       const match = line.trim().match(/^(\d+)\s*(?:pcs?|pieces?|x)?\s*(?:=|:|-|for|@)?\s*(.+)$/i);
@@ -1012,6 +1012,15 @@ function parseWholesaleTiers(value, basePrice = 0) {
     })
     .filter(Boolean);
   return normalizeWholesaleTiers(tiers, basePrice);
+}
+
+function normalizePriceCommas(value) {
+  return String(value || "").replace(/(\d),(?=\d{3}\b)/g, "$1");
+}
+
+function parseMoneyNumber(value) {
+  const match = normalizePriceCommas(value).match(/\d+/);
+  return match ? Number(match[0]) : 0;
 }
 
 function formatWholesaleTiers(tiers = []) {
@@ -1045,7 +1054,7 @@ function parseProductVariants(value) {
 }
 
 function parseProductVariantLine(line) {
-  const parts = String(line || "")
+  const parts = normalizePriceCommas(line)
     .split("|")
     .map((part) => part.trim())
     .filter(Boolean);
@@ -1054,12 +1063,16 @@ function parseProductVariantLine(line) {
   let label = "";
   let originalPrice = 0;
   const firstMatch = parts[0].match(/^(.+?)\s*(?:=|:)\s*(?:php)?\s*(\d+)$/i);
+  const originalMatch = parts[0].match(/^(.+?)(?:\s+Non-preorder)?\s*:?\s*original\s+(\d+)$/i);
   if (firstMatch) {
     label = firstMatch[1].trim();
     originalPrice = Number(firstMatch[2]);
+  } else if (originalMatch) {
+    label = originalMatch[1].trim();
+    originalPrice = Number(originalMatch[2]);
   } else {
     label = parts[0].trim();
-    originalPrice = Number((parts[1] || "").match(/\d+/)?.[0] || 0);
+    originalPrice = parseMoneyNumber(parts[1] || "");
     if (originalPrice) parts.splice(1, 1);
   }
 
@@ -1068,7 +1081,7 @@ function parseProductVariantLine(line) {
   const variant = { label, originalPrice, salePrice: 0, preorderPrice: 0, wholesaleTiers: [], preorderWholesaleTiers: [] };
   parts.slice(1).forEach((part) => {
     const normalized = part.replace(/php/gi, "").trim();
-    const price = Number(normalized.match(/\d+/)?.[0] || 0);
+    const price = parseMoneyNumber(normalized);
     if (/preorder.*(wholesale|tier)|(wholesale|tier).*preorder/i.test(normalized)) {
       variant.preorderWholesaleTiers = parseWholesaleTiers(normalized.replace(/preorder|wholesale|tiers?/gi, ""), variant.preorderPrice || originalPrice);
       return;
