@@ -769,7 +769,6 @@ function normalizeState(nextState) {
   nextState.storeSearch = nextState.storeSearch || "";
   nextState.products = Array.isArray(nextState.products) ? nextState.products.map(normalizeProduct) : structuredClone(defaultProducts);
   if (!nextState.demoCatalogSeeded) {
-    nextState.products = seedDemoCatalog(nextState.products);
     nextState.demoCatalogSeeded = true;
   }
   nextState.cart =
@@ -1629,7 +1628,7 @@ async function pullCommunityState() {
     const remoteCommunity = await requestJson("/api/community");
     remoteSyncAvailable = true;
     if (!remoteCommunity || !Object.keys(remoteCommunity).length) {
-      saveCommunityState();
+      if (state.joinedCommunity || hasAdminCredentials()) saveCommunityState();
       return;
     }
     const nextSnapshot = JSON.stringify(remoteCommunity);
