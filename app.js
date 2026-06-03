@@ -329,6 +329,7 @@ const communityStateKeys = [
   "members",
   "moderation",
   "products",
+  "productDeletedAt",
   "productCategories",
   "demoCatalogSeeded",
   "buyerControlsEnabled",
@@ -373,6 +374,7 @@ const fallbackState = {
   goldenTicketEnabled: true,
   trollControls: structuredClone(defaultTrollControls),
   products: structuredClone(defaultProducts),
+  productDeletedAt: {},
   productCategories: [...new Set(defaultProducts.map((product) => product.category))],
   demoCatalogSeeded: true,
   cart: {},
@@ -820,7 +822,9 @@ function normalizeState(nextState) {
   nextState.adminTrollAccountSearch = nextState.adminTrollAccountSearch || "";
   nextState.cartOpen = Boolean(nextState.cartOpen);
   nextState.storeSearch = nextState.storeSearch || "";
+  nextState.productDeletedAt = normalizeProductDeletedAt(nextState.productDeletedAt);
   nextState.products = Array.isArray(nextState.products) ? nextState.products.map(normalizeProduct) : structuredClone(defaultProducts);
+  nextState.products = nextState.products.filter((product) => !isProductDeleted(product, nextState.productDeletedAt));
   if (!nextState.demoCatalogSeeded) {
     nextState.demoCatalogSeeded = true;
   }
@@ -970,7 +974,22 @@ function normalizeProduct(product, index = 0) {
     poolTarget: Math.max(1, Number(product.poolTarget) || 1),
     poolJoined: Math.max(0, Number(product.poolJoined) || 0),
     image: product.image || "assets/deti-storefront.png",
+    updatedAt: Math.max(0, Number(product.updatedAt) || 0),
   };
+}
+
+function normalizeProductDeletedAt(deletedAt = {}) {
+  if (!deletedAt || typeof deletedAt !== "object" || Array.isArray(deletedAt)) return {};
+  return Object.fromEntries(
+    Object.entries(deletedAt)
+      .map(([productId, timestamp]) => [String(productId || "").trim(), Math.max(0, Number(timestamp) || 0)])
+      .filter(([productId, timestamp]) => productId && timestamp > 0),
+  );
+}
+
+function isProductDeleted(product, deletedAt = {}) {
+  const deletedTimestamp = Number(deletedAt?.[product?.id]) || 0;
+  return deletedTimestamp > 0 && deletedTimestamp > (Number(product?.updatedAt) || 0);
 }
 
 function normalizeProductVariants(variants, product = {}) {
@@ -4174,6 +4193,7 @@ async function saveAdminPreorderSettings({ close = false } = {}) {
     bulkBuyRepeatDays,
     bulkBuyRepeatTime,
     availableAt,
+    updatedAt: Date.now(),
   });
 
   state.products = getProducts().map((item) => (item.id === productId ? updatedProduct : item));
@@ -5337,7 +5357,8 @@ async function removeAdminCategory(categoryName = els.adminProductCategorySelect
   if (!window.confirm(`Remove category ${category}? Products in it will move to General.`)) return;
 
   state.productCategories = (state.productCategories || []).filter((entry) => entry !== category);
-  state.products = getProducts().map((product) => (product.category === category ? { ...product, category: "General" } : product));
+  const updatedAt = Date.now();
+  state.products = getProducts().map((product) => (product.category === category ? { ...product, category: "General", updatedAt } : product));
   if (!state.productCategories.includes("General")) {
     state.productCategories = [...state.productCategories, "General"];
   }
@@ -5422,11 +5443,14 @@ async function saveAdminProduct() {
     poolTarget: existingProduct?.poolTarget,
     poolJoined: existingProduct?.poolJoined,
     image,
+    updatedAt: Date.now(),
   });
 
   await pullCommunityState();
+  product.updatedAt = Date.now();
   const currentProducts = getProducts();
   const exists = currentProducts.some((item) => item.id === product.id);
+  delete state.productDeletedAt[product.id];
   state.products = exists ? currentProducts.map((item) => (item.id === product.id ? product : item)) : [...currentProducts, product];
   addChat("System", `Admin ${exists ? "updated" : "added"} product ${product.name}.`, true, {
     announcementTitle: exists ? "Product updated" : "Product added",
@@ -5443,6 +5467,10 @@ async function removeAdminProduct(productId = els.adminProductSelect.value) {
   if (!window.confirm(`Remove ${product.name} from the store?`)) return;
 
   await pullCommunityState();
+  state.productDeletedAt = {
+    ...normalizeProductDeletedAt(state.productDeletedAt),
+    [productId]: Date.now(),
+  };
   state.products = getProducts().filter((item) => item.id !== productId);
   Object.keys(state.cart).forEach((cartKey) => {
     if (parseCartKey(cartKey).productId === productId) delete state.cart[cartKey];
@@ -5465,7 +5493,8 @@ async function moveAdminProduct(productId, direction) {
   if (index < 0 || targetIndex < 0 || targetIndex >= products.length) return;
   const reordered = [...products];
   [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
-  state.products = reordered.map((product, orderIndex) => ({ ...product, sortOrder: orderIndex + 1 }));
+  const updatedAt = Date.now();
+  state.products = reordered.map((product, orderIndex) => ({ ...product, sortOrder: orderIndex + 1, updatedAt }));
   await saveCommunityState();
   render();
 }

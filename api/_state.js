@@ -43,6 +43,28 @@ function mergeRecords(existingRecords = [], incomingRecords = [], options = {}) 
   return options.limit ? sorted.slice(options.descending ? 0 : -options.limit) : sorted;
 }
 
+function normalizeProductDeletedAt(deletedAt = {}) {
+  if (!deletedAt || typeof deletedAt !== "object" || Array.isArray(deletedAt)) return {};
+  return Object.fromEntries(
+    Object.entries(deletedAt)
+      .map(([productId, timestamp]) => [String(productId || "").trim(), Math.max(0, Number(timestamp) || 0)])
+      .filter(([productId, timestamp]) => productId && timestamp > 0),
+  );
+}
+
+function mergeProductDeletedAt(existingDeletedAt = {}, incomingDeletedAt = {}) {
+  const merged = normalizeProductDeletedAt(existingDeletedAt);
+  Object.entries(normalizeProductDeletedAt(incomingDeletedAt)).forEach(([productId, timestamp]) => {
+    merged[productId] = Math.max(Number(merged[productId]) || 0, timestamp);
+  });
+  return merged;
+}
+
+function isProductDeleted(product, deletedAt = {}) {
+  const deletedTimestamp = Number(deletedAt?.[product?.id]) || 0;
+  return deletedTimestamp > 0 && deletedTimestamp > (Number(product?.updatedAt) || 0);
+}
+
 function mergeCommunityState(existing = {}, incoming = {}) {
   const resetAt = Math.max(Number(existing.dataResetAt) || 0, Number(incoming.dataResetAt) || 0);
   const moderation = {
@@ -55,12 +77,16 @@ function mergeCommunityState(existing = {}, incoming = {}) {
     ...existing,
     ...incoming,
     moderation,
+    productDeletedAt: mergeProductDeletedAt(existing.productDeletedAt, incoming.productDeletedAt),
     chat: mergeRecords(existing.chat, incoming.chat, { limit: 140 }),
     directMessages: mergeRecords(existing.directMessages, incoming.directMessages, { limit: 300 }),
     announcements: mergeRecords(existing.announcements, incoming.announcements, { limit: 30, descending: true }),
     receipts: mergeRecords(existing.receipts, incoming.receipts, { limit: 24, descending: true }),
     dataResetAt: resetAt,
   };
+  if (Array.isArray(merged.products)) {
+    merged.products = merged.products.filter((product) => !isProductDeleted(product, merged.productDeletedAt));
+  }
   if (moderation.clearChatAt) {
     merged.chat = (merged.chat || []).filter((message) => message.type === "receipt" || (Number(message.createdAt) || 0) > moderation.clearChatAt);
     merged.announcements = (merged.announcements || []).filter((announcement) => (Number(announcement.createdAt) || 0) > moderation.clearChatAt);
