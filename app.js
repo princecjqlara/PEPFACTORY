@@ -284,6 +284,7 @@ const defaultTrollControls = {
 let remoteSyncAvailable = false;
 let remoteSyncInFlight = false;
 let remoteSyncDisabled = false;
+let mediaUploadDisabled = false;
 const userStateKeys = [
   "handle",
   "username",
@@ -2472,7 +2473,7 @@ function handlePrivateChatMediaUpload(event) {
 
 async function uploadMedia(media) {
   if (!media) return null;
-  if (remoteSyncDisabled) return { url: media.src };
+  if (mediaUploadDisabled) return { url: media.src };
   try {
     return await requestJson("/api/media", {
       method: "POST",
@@ -2483,7 +2484,7 @@ async function uploadMedia(media) {
       }),
     });
   } catch (error) {
-    if (error.status === 404) remoteSyncDisabled = true;
+    if (error.status === 404) mediaUploadDisabled = true;
     return { url: media.src };
   }
 }
@@ -5235,7 +5236,7 @@ async function saveAdminProduct() {
     if (!imageDataUrl) {
       image = fallbackImage;
       window.alert("That image is too large to store in this browser. Use a smaller image or paste a Picture URL.");
-    } else if (remoteSyncDisabled) {
+    } else if (mediaUploadDisabled) {
       image = imageDataUrl;
     } else {
       try {
@@ -5249,7 +5250,7 @@ async function saveAdminProduct() {
         });
         image = uploaded.url;
       } catch (error) {
-        if (error.status === 404) remoteSyncDisabled = true;
+        if (error.status === 404) mediaUploadDisabled = true;
         image = imageDataUrl;
       }
     }
