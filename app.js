@@ -4290,9 +4290,10 @@ async function saveAdminPreorderSettings({ close = false } = {}) {
   const availableAt = close ? null : parseDateTimeLocal(els.adminPreorderAvailableAtInput.value);
   await pullCommunityState();
   const currentProduct = getProducts().find((item) => item.id === productId) || product;
+  const nextStock = outOfStock ? 0 : Math.max(1, Number(currentProduct.stock) || Number(product.stock) || 1);
   const updatedProduct = normalizeProduct({
     ...currentProduct,
-    stock: outOfStock ? 0 : currentProduct.stock,
+    stock: nextStock,
     preorderEnabled: enabled,
     preorderPrice,
     preorderStock,
@@ -6273,9 +6274,14 @@ els.adminBuyerControlsToggle.addEventListener("change", async (event) => {
 });
 els.adminProductSelect.addEventListener("change", (event) => loadAdminProductForm(event.target.value));
 els.adminProductOutOfStockInput.addEventListener("change", (event) => {
-  if (!event.target.checked) return;
-  els.adminProductStockInput.value = "0";
-  els.adminProductPreorderInput.checked = true;
+  if (event.target.checked) {
+    els.adminProductStockInput.value = "0";
+    els.adminProductPreorderInput.checked = true;
+    return;
+  }
+  if (Number(els.adminProductStockInput.value) <= 0) {
+    els.adminProductStockInput.value = "1";
+  }
 });
 els.adminProductStockInput.addEventListener("input", (event) => {
   els.adminProductOutOfStockInput.checked = Number(event.target.value) <= 0;

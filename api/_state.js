@@ -3,9 +3,25 @@ const memoryStore = (globalThis.__pepfactoryStore ||= {
   accounts: {},
 });
 
+function getSupabaseUrl() {
+  const configuredUrl = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
+  const databaseUrl = String(process.env.DATABASE_URL || "").trim();
+  const databaseProjectRef = databaseUrl.match(/(?:^|\/\/)(?:[^@]+@)?db\.([a-z0-9-]+)\.supabase\.co/i)?.[1];
+  if (!databaseProjectRef) return configuredUrl;
+
+  const derivedUrl = `https://${databaseProjectRef}.supabase.co`;
+  try {
+    const configuredHost = configuredUrl ? new URL(configuredUrl).hostname : "";
+    if (!configuredHost || configuredHost.split(".")[0] !== databaseProjectRef) return derivedUrl;
+  } catch {
+    return derivedUrl;
+  }
+  return configuredUrl;
+}
+
 function getSupabaseConfig() {
   return {
-    url: process.env.SUPABASE_URL,
+    url: getSupabaseUrl(),
     key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY,
   };
 }
