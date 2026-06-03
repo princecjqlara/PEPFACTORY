@@ -1521,15 +1521,45 @@ function renderDealHighlights(product, variant = null, mode = "") {
   const displayPrice = getProductDisplayPrice(product, variant);
   const salePercent = getDiscountPercent(originalPrice, displayPrice);
   const wholesale = getCheapestWholesaleTier(product, variant, mode);
+  const wholesaleBasePrice = getWholesaleBasePrice(product, variant, mode);
   const wholesalePercent = wholesale ? wholesale.discountPercent || getDiscountPercent(getWholesaleBasePrice(product, variant, mode), wholesale.unitPrice) : 0;
   const preorderPrice = getVariantPreorderPrice(product, variant);
   const preorderPercent = product.preorderEnabled ? getDiscountPercent(originalPrice, preorderPrice) : 0;
-  const highlights = [
-    salePercent ? `<span class="hot"><b>${formatPercent(salePercent)}% off</b>Today price</span>` : "",
-    wholesale ? `<span><b>${wholesalePercent ? `${formatPercent(wholesalePercent)}% off` : formatMoney(wholesale.unitPrice)}</b>${wholesale.minQty}+ pcs bundle</span>` : "",
-    preorderPercent ? `<span><b>${formatPercent(preorderPercent)}% off</b>Preorder</span>` : "",
+  const bestPercent = Math.max(salePercent || 0, wholesalePercent || 0, preorderPercent || 0);
+  const image = product.wholesaleImage || product.image;
+  const deals = [
+    salePercent
+      ? `<span class="hot" role="menuitem"><b>Today sale</b><strong>${escapeHtml(formatMoney(displayPrice))}</strong><em>${escapeHtml(formatPercent(salePercent))}% off</em><small>Was ${escapeHtml(formatMoney(originalPrice))}</small></span>`
+      : "",
+    wholesale
+      ? `<span role="menuitem"><b>${wholesale.minQty}+ pcs bundle</b><strong>${escapeHtml(formatMoney(wholesale.unitPrice))} each</strong>${wholesalePercent ? `<em>${escapeHtml(formatPercent(wholesalePercent))}% off</em>` : ""}<small>${escapeHtml(formatWholesaleSavings(wholesale, wholesaleBasePrice))}</small></span>`
+      : "",
+    preorderPercent
+      ? `<span role="menuitem"><b>Preorder price</b><strong>${escapeHtml(formatMoney(preorderPrice))}</strong><em>${escapeHtml(formatPercent(preorderPercent))}% off</em><small>Reserve now, pay preorder rate</small></span>`
+      : "",
   ].filter(Boolean);
-  return highlights.length ? `<div class="deal-highlights" data-deals-for="${escapeHtml(product.id)}">${highlights.slice(0, 3).join("")}</div>` : "";
+  if (!deals.length) return "";
+  return `
+    <div class="deal-highlights" data-deals-for="${escapeHtml(product.id)}">
+      <button class="deal-menu-button" type="button" data-toggle-deals aria-expanded="false">
+        <span>
+          <b>${bestPercent ? `${escapeHtml(formatPercent(bestPercent))}% off` : "Best deals"}</b>
+          <small>${wholesale ? `${wholesale.minQty}+ pc bundle available` : preorderPercent ? "Preorder deal open" : "Today sale active"}</small>
+        </span>
+        <em>View</em>
+      </button>
+      <div class="deal-menu" role="menu" hidden>
+        <div class="deal-menu-hero">
+          <img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)} deal menu" loading="lazy" />
+          <div>
+            <b>${escapeHtml(product.name)} deals</b>
+            <span>${escapeHtml(variant?.label || "Best value")} / compare before checkout</span>
+          </div>
+        </div>
+        ${deals.join("")}
+      </div>
+    </div>
+  `;
 }
 
 function getSaleTimeLeft(product) {
@@ -1673,6 +1703,17 @@ function closeWholesaleMenus(except = null) {
       button.textContent = "Deals";
       button.setAttribute("aria-expanded", "false");
     }
+  });
+}
+
+function closeDealMenus(except = null) {
+  document.querySelectorAll(".deal-highlights").forEach((deals) => {
+    if (deals === except) return;
+    deals.classList.remove("open");
+    const menu = deals.querySelector(".deal-menu");
+    const button = deals.querySelector("[data-toggle-deals]");
+    if (menu) menu.hidden = true;
+    if (button) button.setAttribute("aria-expanded", "false");
   });
 }
 
@@ -6213,6 +6254,7 @@ document.addEventListener("click", (event) => {
   const editProductButton = event.target.closest("[data-edit-product]");
   const editPreorderButton = event.target.closest("[data-edit-preorder]");
   const openPreorderButton = event.target.closest("[data-open-preorder]");
+  const toggleDealButton = event.target.closest("[data-toggle-deals]");
   const toggleWholesaleButton = event.target.closest("[data-toggle-wholesale]");
   const sizeToggleButton = event.target.closest("[data-size-toggle]");
   const sizeOptionButton = event.target.closest("[data-size-option]");
@@ -6254,6 +6296,7 @@ document.addEventListener("click", (event) => {
     editProductButton ||
     editPreorderButton ||
     openPreorderButton ||
+    toggleDealButton ||
     toggleWholesaleButton ||
     sizeToggleButton ||
     sizeOptionButton ||
@@ -6275,12 +6318,29 @@ document.addEventListener("click", (event) => {
     event.preventDefault();
   }
 
+  if (toggleDealButton) {
+    const deals = toggleDealButton.closest(".deal-highlights");
+    const menu = deals?.querySelector(".deal-menu");
+    if (menu) {
+      const shouldOpen = menu.hidden;
+      closeDealMenus(deals);
+      closeWholesaleMenus();
+      closeVariantMenus();
+      menu.hidden = !shouldOpen;
+      deals.classList.toggle("open", shouldOpen);
+      toggleDealButton.setAttribute("aria-expanded", String(shouldOpen));
+    }
+    return;
+  }
+
   if (toggleWholesaleButton) {
     const strip = toggleWholesaleButton.closest(".wholesale-strip");
     const list = strip?.querySelector(".wholesale-tier-list");
     if (list) {
       const shouldOpen = list.hidden;
+      closeDealMenus();
       closeWholesaleMenus(strip);
+      closeVariantMenus();
       list.hidden = !shouldOpen;
       strip.classList.toggle("open", shouldOpen);
       toggleWholesaleButton.textContent = shouldOpen ? "Close" : "Deals";
@@ -6294,6 +6354,8 @@ document.addEventListener("click", (event) => {
     const menu = picker?.querySelector(".variant-menu");
     if (menu) {
       const shouldOpen = menu.hidden;
+      closeDealMenus();
+      closeWholesaleMenus();
       closeVariantMenus(picker);
       menu.hidden = !shouldOpen;
       picker.classList.toggle("open", shouldOpen);
@@ -6318,6 +6380,9 @@ document.addEventListener("click", (event) => {
 
   if (!event.target.closest(".wholesale-strip")) {
     closeWholesaleMenus();
+  }
+  if (!event.target.closest(".deal-highlights")) {
+    closeDealMenus();
   }
   if (!event.target.closest(".variant-picker")) {
     closeVariantMenus();
