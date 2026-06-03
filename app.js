@@ -3189,9 +3189,9 @@ function renderProducts() {
       const badgeLabel = topFeatured ? "Top pick" : !outOfStock && canPreorder ? "Stock + preorder" : canPreorder ? "Preorder" : outOfStock ? "Out" : saleActive ? "Sale" : product.banner;
       const sectionLabel =
         product.id === firstFeaturedId
-          ? `<div class="menu-section-label"><strong>Kiosk picks</strong><span>Highlighted by admin</span></div>`
+          ? `<div class="menu-section-label kiosk-picks-label"><strong>Kiosk picks</strong><span>Highlighted by admin</span></div>`
           : product.id === firstMenuProductId
-          ? `<div class="menu-section-label"><strong>Full menu</strong><span>Manual admin order</span></div>`
+          ? `<div class="menu-section-label full-menu-label"><strong>Full menu</strong><span>Manual admin order</span></div>`
           : "";
       const preorderButtonLabel = outOfStock && canPreorder ? "Preorder" : outOfStock ? "Out of stock" : "Add to cart";
       return `
