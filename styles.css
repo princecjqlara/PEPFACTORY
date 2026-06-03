@@ -2295,9 +2295,10 @@ h2 {
 }
 
 .cart-total {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
+  gap: 4px 10px;
   margin: 16px 0 12px;
   padding-top: 14px;
   border-top: 1px solid var(--line);
@@ -2306,6 +2307,22 @@ h2 {
 .cart-total strong {
   color: var(--pink-dark);
   font-size: 1.45rem;
+}
+
+.cart-savings {
+  grid-column: 1 / -1;
+  justify-self: end;
+  border: 1px solid rgba(16, 146, 119, 0.16);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #0d6b48;
+  background: #e9f8ef;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.cart-savings[hidden] {
+  display: none;
 }
 
 .order-summary {

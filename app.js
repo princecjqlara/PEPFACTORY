@@ -395,6 +395,7 @@ const els = {
   cartList: document.querySelector("#cartList"),
   cartSuggestions: document.querySelector("#cartSuggestions"),
   cartTotal: document.querySelector("#cartTotal"),
+  cartSavings: document.querySelector("#cartSavings"),
   cartCount: document.querySelector("#cartCount"),
   cartPopupBtn: document.querySelector("#cartPopupBtn"),
   closeCartBtn: document.querySelector("#closeCartBtn"),
@@ -1460,6 +1461,29 @@ function formatWholesaleSavings(tier, basePrice = 0, qty = tier?.minQty || 1) {
   return `Save ${formatMoney(savings.unitSaved)} each / ${formatMoney(savings.totalSaved)} at ${Math.max(1, Math.round(Number(qty) || 1))} pcs`;
 }
 
+function getWholesaleUpsellSavings(product, qty = 1, variant = null, mode = "", tier = null) {
+  if (!product || !tier) return { addedSavings: 0, totalSavings: 0, targetQty: 0 };
+  const currentQty = Math.max(1, Math.round(Number(qty) || 1));
+  const targetQty = Math.max(currentQty, Math.round(Number(tier.minQty) || currentQty));
+  const basePrice = getWholesaleBasePrice(product, variant, mode);
+  const currentTier = getWholesaleTier(product, currentQty, variant, mode);
+  const currentSavings = currentTier ? getWholesaleSavings(currentTier, basePrice, currentQty).totalSaved : 0;
+  const targetSavings = getWholesaleSavings(tier, basePrice, targetQty).totalSaved;
+  return {
+    addedSavings: Math.max(0, targetSavings - currentSavings),
+    totalSavings: Math.max(0, targetSavings),
+    targetQty,
+  };
+}
+
+function formatWholesaleUpsellSavings(product, qty = 1, variant = null, mode = "", tier = null) {
+  const savings = getWholesaleUpsellSavings(product, qty, variant, mode, tier);
+  if (!savings.totalSavings) return "";
+  return savings.addedSavings && savings.addedSavings !== savings.totalSavings
+    ? `Save ${formatMoney(savings.addedSavings)} more when added / ${formatMoney(savings.totalSavings)} total savings at ${savings.targetQty} pcs.`
+    : `Save ${formatMoney(savings.totalSavings)} when added at ${savings.targetQty} pcs.`;
+}
+
 function renderWholesaleContent(product, variant = null, mode = "") {
   const tiers = getWholesaleTiers(product, variant, mode);
   if (!tiers.length) return "";
@@ -2102,6 +2126,7 @@ function getCartSuggestions() {
     const nextTier = getNextWholesaleTier(product, qty, line.variant, line.mode);
     if (!nextTier) return;
     const addQty = nextTier.minQty - qty;
+    const savingsDetail = formatWholesaleUpsellSavings(product, qty, line.variant, line.mode, nextTier);
     suggestions.push({
       type: "wholesale",
       product,
@@ -2110,7 +2135,7 @@ function getCartSuggestions() {
       mode: line.mode,
       addQty,
       title: `Add ${addQty} more ${addQty === 1 ? "pc" : "pcs"} of ${getCartItemName(product, line.variant)}`,
-      detail: `Unlock ${line.mode === "preorder" ? "preorder " : ""}${formatWholesaleTierLabel(nextTier)} wholesale pricing.`,
+      detail: `Unlock ${line.mode === "preorder" ? "preorder " : ""}${formatWholesaleTierLabel(nextTier)} wholesale pricing.${savingsDetail ? ` ${savingsDetail}` : ""}`,
       action: `Add ${addQty}`,
     });
   });
@@ -3238,8 +3263,13 @@ function renderProducts() {
 
 function renderCart() {
   const entries = Object.entries(state.cart);
+  const savedTotal = getCartSavings();
   updateCheckoutButtonState();
   els.cartTotal.textContent = formatMoney(getCartTotal());
+  if (els.cartSavings) {
+    els.cartSavings.hidden = !savedTotal;
+    els.cartSavings.textContent = savedTotal ? `Wholesale savings applied: ${formatMoney(savedTotal)}` : "";
+  }
   els.cartCount.textContent = getCartUnits();
   if (els.preorderCartCount) els.preorderCartCount.textContent = getCartUnits();
   els.cartPopover.classList.toggle("show", state.cartOpen);
@@ -3269,6 +3299,7 @@ function renderCartLineItems(options = {}) {
       const retailPrice = getWholesaleBasePrice(product, variant, line.mode);
       const wholesaleTier = getWholesaleTier(product, qty, variant, line.mode);
       const nextWholesaleTier = getNextWholesaleTier(product, qty, variant, line.mode);
+      const nextWholesaleSavingsDetail = nextWholesaleTier ? formatWholesaleUpsellSavings(product, qty, variant, line.mode, nextWholesaleTier) : "";
       return `
         <div class="cart-row ${options.compact ? "compact" : ""}">
           <img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" loading="lazy" />
@@ -3278,10 +3309,10 @@ function renderCartLineItems(options = {}) {
               line.mode === "preorder"
                 ? wholesaleTier
                   ? `Preorder wholesale / ${formatMoney(price)} each${wholesaleTier.discountPercent > 0 ? ` / ${formatPercent(wholesaleTier.discountPercent)}% off` : ""} / saved ${formatMoney((retailPrice - price) * qty)} / ${getBulkBuyLabel(product)}`
-                  : `Preorder (Bulk Buy) order / ${formatMoney(price)} each${nextWholesaleTier ? ` / add ${nextWholesaleTier.minQty - qty} more for ${formatWholesaleTierLabel(nextWholesaleTier)}` : ""} / ${getBulkBuyLabel(product)} / ${getAvailabilityLabel(product)}`
+                  : `Preorder (Bulk Buy) order / ${formatMoney(price)} each${nextWholesaleTier ? ` / add ${nextWholesaleTier.minQty - qty} more for ${formatWholesaleTierLabel(nextWholesaleTier)}${nextWholesaleSavingsDetail ? ` / ${nextWholesaleSavingsDetail}` : ""}` : ""} / ${getBulkBuyLabel(product)} / ${getAvailabilityLabel(product)}`
                 : wholesaleTier
                 ? `${formatMoney(price)} each wholesale${wholesaleTier.discountPercent > 0 ? ` / ${formatPercent(wholesaleTier.discountPercent)}% off` : ""} / saved ${formatMoney((retailPrice - price) * qty)}`
-                : `${formatMoney(price)} each${nextWholesaleTier ? ` / add ${nextWholesaleTier.minQty - qty} more for ${formatWholesaleTierLabel(nextWholesaleTier)}` : ""}`
+                : `${formatMoney(price)} each${nextWholesaleTier ? ` / add ${nextWholesaleTier.minQty - qty} more for ${formatWholesaleTierLabel(nextWholesaleTier)}${nextWholesaleSavingsDetail ? ` / ${nextWholesaleSavingsDetail}` : ""}` : ""}`
             }</span>
           </div>
           <div class="qty-controls">
