@@ -2788,6 +2788,12 @@ h2 {
   text-transform: uppercase;
 }
 
+.pinned-system-message .pin-spacer {
+  width: 1px;
+  padding: 0;
+  background: transparent;
+}
+
 .pinned-system-message strong {
   min-width: 0;
   overflow: hidden;

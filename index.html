@@ -12,7 +12,6 @@
         <div class="brand">
           <img class="brand-mark" src="logo.png" alt="pepfactory logo" />
           <div>
-            <p class="eyebrow">Anonymous Kiosk Sales</p>
             <h1><span>P</span>epfactory</h1>
           </div>
         </div>
@@ -32,7 +31,7 @@
           <section class="workspace-panel">
             <nav class="workspace-tabs" aria-label="pepfactory navigation">
               <button class="tab-button active" type="button" data-tab="store">Store</button>
-              <button class="tab-button" type="button" data-tab="discounts">Preorder (Bulk Buy)</button>
+              <button class="tab-button" type="button" data-tab="discounts">Group Buy</button>
               <button class="tab-button" type="button" data-tab="orders">Orders</button>
             </nav>
 
@@ -40,7 +39,6 @@
               <section class="workspace-view store-panel active" data-view="store">
                 <div class="section-head">
                   <div>
-                    <p class="eyebrow">Built-In Store</p>
                     <div class="store-title-row">
                       <h2>Products</h2>
                       <span class="stock-chip" id="stockChip">0 in stock</span>
@@ -83,15 +81,15 @@
               <section class="workspace-view domino-panel" data-view="discounts">
                 <div class="section-head">
                   <div>
-                    <p class="eyebrow">Preorder</p>
-                    <h2>Preorder (Bulk Buy)</h2>
+                    <p class="eyebrow">Member Pricing</p>
+                    <h2>Group Buy</h2>
                   </div>
                   <button class="cart-trigger" id="preorderCartBtn" type="button">
                     Cart <span id="preorderCartCount">0</span>
                   </button>
                 </div>
                 <div class="tier-track" id="tierTrack" aria-label="Group-buy tier track"></div>
-                <div class="refund-strip" id="refundStrip">Preorder (Bulk Buy) tiers unlock lower prices for grouped orders.</div>
+                <div class="refund-strip" id="refundStrip">Group Buy tiers unlock lower prices for grouped orders.</div>
                 <div class="bulk-buy-list" id="bulkBuyList"></div>
               </section>
 
@@ -117,7 +115,7 @@
                 <img class="chat-profile-picture" src="logo.png" alt="pepfactory group chat" />
                 <div>
                   <p class="eyebrow" id="chatPanelEyebrow">Group Chat</p>
-                  <h2 id="chatPanelTitle">pepfactory Messenger</h2>
+                  <h2 id="chatPanelTitle">Exclusive Members</h2>
                 </div>
               </div>
               <div class="chat-head-actions">
@@ -231,6 +229,10 @@
               <label>
                 <span>Announcement title</span>
                 <input id="adminAnnouncementTitle" type="text" maxlength="42" placeholder="System update" />
+              </label>
+              <label>
+                <span>Pinned label</span>
+                <input id="adminPinnedLabel" type="text" maxlength="18" placeholder="Optional badge text" />
               </label>
               <label>
                 <span>Group chat message</span>
@@ -359,7 +361,7 @@
               <div class="admin-split">
                 <label class="admin-check">
                   <input id="adminProductPreorderInput" type="checkbox" />
-                  <span>Allow Preorder (Bulk Buy)</span>
+                  <span>Allow Group Buy</span>
                 </label>
               </div>
               <label>
@@ -390,7 +392,7 @@
           <div class="admin-tab-panel" data-admin-panel="preorder">
             <section class="admin-tool-card">
               <div class="admin-form-head">
-                <h3>Preorder (Bulk Buy)</h3>
+                <h3>Group Buy</h3>
                 <span>Control preorder availability, deadline, out-of-stock status, and incoming dates</span>
               </div>
               <label>

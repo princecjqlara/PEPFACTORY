@@ -453,6 +453,7 @@ const els = {
   adminChatCount: document.querySelector("#adminChatCount"),
   adminBroadcastForm: document.querySelector("#adminBroadcastForm"),
   adminAnnouncementTitle: document.querySelector("#adminAnnouncementTitle"),
+  adminPinnedLabel: document.querySelector("#adminPinnedLabel"),
   adminAnnouncementText: document.querySelector("#adminAnnouncementText"),
   adminBuyerControlsToggle: document.querySelector("#adminBuyerControlsToggle"),
   adminBuyerAmountInput: document.querySelector("#adminBuyerAmountInput"),
@@ -915,6 +916,7 @@ function normalizeState(nextState) {
       userReactions: message.userReactions || {},
       type: message.type || "text",
       pinned: message.pinned !== false && !isReplacementSignalMessage(message),
+      pinLabel: String(message.pinLabel || "").trim(),
       adminActingAs: message.adminActingAs || "",
       audience: normalizeGroupAudience(message.audience),
       media: message.media || null,
@@ -2312,6 +2314,7 @@ function addChat(author, text, system = false, options = {}) {
     replyToId: options.replyToId || null,
     type: options.type || "text",
     pinned: options.pinned !== false,
+    pinLabel: String(options.pinLabel || "").trim(),
     receipt: options.receipt || null,
     media: options.media || null,
     adminActingAs: options.adminActingAs || "",
@@ -3233,7 +3236,7 @@ function renderTiers() {
           `;
         })
         .join("")
-    : `<div class="empty-store">No Preorder (Bulk Buy) products are open.</div>`;
+    : `<div class="empty-store">No Group Buy products are open.</div>`;
 }
 
 function renderProducts() {
@@ -3284,7 +3287,7 @@ function renderProducts() {
       const badgeLabel = topFeatured ? "Top pick" : !outOfStock && canPreorder ? "Stock + preorder" : canPreorder ? "Preorder" : outOfStock ? "Out" : saleActive ? "Sale" : product.banner;
       const sectionLabel =
         product.id === firstFeaturedId
-          ? `<div class="menu-section-label kiosk-picks-label"><strong>Kiosk picks</strong><span>Highlighted by admin</span></div>`
+          ? `<div class="menu-section-label kiosk-picks-label"><strong>Exclusive sale</strong><span>Member-only savings</span></div>`
           : product.id === firstMenuProductId
           ? `<div class="menu-section-label full-menu-label"><strong>Full menu</strong><span>Manual admin order</span></div>`
           : "";
@@ -3373,7 +3376,7 @@ function renderCartLineItems(options = {}) {
               line.mode === "preorder"
                 ? wholesaleTier
                   ? `Preorder wholesale / ${formatMoney(price)} each${wholesaleTier.discountPercent > 0 ? ` / ${formatPercent(wholesaleTier.discountPercent)}% off` : ""} / saved ${formatMoney((retailPrice - price) * qty)} / ${getBulkBuyLabel(product)}`
-                  : `Preorder (Bulk Buy) order / ${formatMoney(price)} each${nextWholesaleTier ? ` / add ${nextWholesaleTier.minQty - qty} more for ${formatWholesaleTierLabel(nextWholesaleTier)}${nextWholesaleSavingsDetail ? ` / ${nextWholesaleSavingsDetail}` : ""}` : ""} / ${getBulkBuyLabel(product)} / ${getAvailabilityLabel(product)}`
+                  : `Group Buy order / ${formatMoney(price)} each${nextWholesaleTier ? ` / add ${nextWholesaleTier.minQty - qty} more for ${formatWholesaleTierLabel(nextWholesaleTier)}${nextWholesaleSavingsDetail ? ` / ${nextWholesaleSavingsDetail}` : ""}` : ""} / ${getBulkBuyLabel(product)} / ${getAvailabilityLabel(product)}`
                 : wholesaleTier
                 ? `${formatMoney(price)} each wholesale${wholesaleTier.discountPercent > 0 ? ` / ${formatPercent(wholesaleTier.discountPercent)}% off` : ""} / saved ${formatMoney((retailPrice - price) * qty)}`
                 : `${formatMoney(price)} each${nextWholesaleTier ? ` / add ${nextWholesaleTier.minQty - qty} more for ${formatWholesaleTierLabel(nextWholesaleTier)}${nextWholesaleSavingsDetail ? ` / ${nextWholesaleSavingsDetail}` : ""}` : ""}`
@@ -3658,7 +3661,7 @@ function renderChatMode() {
   renderAdminSenderControls();
   els.chatPanel.classList.toggle("admin-chat-mode", adminMode);
   els.chatPanelEyebrow.textContent = adminMode ? "Admin Chat" : "Group Chat";
-  els.chatPanelTitle.textContent = adminMode ? (isAdmin() ? "Member Conversation" : "Admin Support") : "pepfactory Messenger";
+  els.chatPanelTitle.textContent = adminMode ? (isAdmin() ? "Member Conversation" : "Admin Support") : "Exclusive Members";
   els.chatModeButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.chatMode === state.chatMode);
     button.setAttribute("aria-pressed", String(button.dataset.chatMode === state.chatMode));
@@ -3953,9 +3956,10 @@ function renderPinnedSystemMessage() {
     return;
   }
 
+  const pinLabel = String(pinned.pinLabel || "").trim();
   els.pinnedSystemMessage.hidden = false;
   els.pinnedSystemMessage.innerHTML = `
-    <span>Pinned</span>
+    ${pinLabel ? `<span>${escapeHtml(pinLabel)}</span>` : `<span class="pin-spacer" aria-hidden="true"></span>`}
     <strong>${escapeHtml(pinned.text)}</strong>
   `;
 }
@@ -5104,14 +5108,17 @@ async function broadcastAdminAnnouncement(event) {
   if (!requireAdmin()) return;
 
   const title = els.adminAnnouncementTitle.value.trim() || "Admin update";
+  const pinLabel = els.adminPinnedLabel.value.trim();
   const text = els.adminAnnouncementText.value.trim();
   if (!text) return;
 
   await pullCommunityState();
   addChat("System", text, true, {
     announcementTitle: title,
+    pinLabel,
   });
   els.adminAnnouncementTitle.value = "";
+  els.adminPinnedLabel.value = "";
   els.adminAnnouncementText.value = "";
   await saveCommunityState();
   render();
