@@ -645,6 +645,28 @@ function pickStateKeys(source, keys) {
   }, {});
 }
 
+function isDataUrl(value) {
+  return /^data:/i.test(String(value || ""));
+}
+
+function getStorableProductImage(image, fallbackImage = "") {
+  const fallback = fallbackImage && !isDataUrl(fallbackImage) ? fallbackImage : "assets/deti-storefront.png";
+  if (!image || isDataUrl(image)) return fallback;
+  return image;
+}
+
+function sanitizeCommunityStateForStorage(communityState) {
+  return {
+    ...communityState,
+    products: Array.isArray(communityState.products)
+      ? communityState.products.map((product) => ({
+          ...product,
+          image: getStorableProductImage(product.image),
+        }))
+      : communityState.products,
+  };
+}
+
 function normalizeTrollControls(controls = {}) {
   const nextControls = {
     ...structuredClone(defaultTrollControls),
@@ -1501,7 +1523,7 @@ function getStoreCategoryCount(category) {
 
 function saveState() {
   localStorage.setItem(userStateKey, JSON.stringify(pickStateKeys(state, userStateKeys)));
-  localStorage.setItem(communityStateKey, JSON.stringify(pickStateKeys(state, communityStateKeys)));
+  localStorage.setItem(communityStateKey, JSON.stringify(sanitizeCommunityStateForStorage(pickStateKeys(state, communityStateKeys))));
 }
 
 function saveUserState() {
@@ -1511,7 +1533,7 @@ function saveUserState() {
 function saveCommunityState() {
   normalizeModerationRecords();
   touchMemberPresence();
-  const communityState = pickStateKeys(state, communityStateKeys);
+  const communityState = sanitizeCommunityStateForStorage(pickStateKeys(state, communityStateKeys));
   lastCommunitySnapshot = JSON.stringify(communityState);
   localStorage.setItem(communityStateKey, lastCommunitySnapshot);
   return pushCommunityState();
@@ -1605,7 +1627,7 @@ async function pushCommunityState() {
   remoteSyncInFlight = true;
   const syncPromise = requestJson("/api/community", {
     method: "POST",
-    body: JSON.stringify(pickStateKeys(state, communityStateKeys)),
+    body: JSON.stringify(sanitizeCommunityStateForStorage(pickStateKeys(state, communityStateKeys))),
   });
   remoteSyncInFlight = syncPromise;
   try {
@@ -5123,13 +5145,19 @@ async function saveAdminProduct() {
   const existingId = els.adminProductSelect.value;
   const name = els.adminProductNameInput.value.trim();
   if (!name) return;
+  const products = getProducts();
+  let productId = existingId || slugifyProductId(name);
+  if (!existingId && products.some((item) => item.id === productId)) {
+    productId = `${productId}-${Date.now()}`;
+  }
+  const existingProduct = products.find((item) => item.id === productId);
 
   const imageFile = els.adminProductImageInput.files?.[0];
   let image = els.adminProductImageUrlInput.value.trim();
   if (imageFile) {
     const imageDataUrl = await readFileAsDataUrl(imageFile);
     if (remoteSyncDisabled) {
-      image = imageDataUrl;
+      image = getStorableProductImage(image, existingProduct?.image);
     } else {
       try {
         const uploaded = await requestJson("/api/media", {
@@ -5143,17 +5171,10 @@ async function saveAdminProduct() {
         image = uploaded.url;
       } catch (error) {
         if (error.status === 404) remoteSyncDisabled = true;
-        image = imageDataUrl;
+        image = getStorableProductImage(image, existingProduct?.image);
       }
     }
   }
-
-  const products = getProducts();
-  let productId = existingId || slugifyProductId(name);
-  if (!existingId && products.some((item) => item.id === productId)) {
-    productId = `${productId}-${Date.now()}`;
-  }
-  const existingProduct = products.find((item) => item.id === productId);
   const bulkBuyAt = parseDateTimeLocal(els.adminProductBulkBuyAtInput.value);
   const bulkBuyRepeatDays = getSelectedWeekdays("productBulkBuyRepeat");
   const bulkBuyRepeatTime = normalizeTimeValue(els.adminProductBulkBuyRepeatTimeInput.value);
