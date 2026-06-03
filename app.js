@@ -1214,18 +1214,40 @@ function formatWholesaleTierLabel(tier) {
   return `${formatMoney(tier.unitPrice)} each`;
 }
 
+function getWholesaleSavings(tier, basePrice = 0, qty = tier?.minQty || 1) {
+  const unitSaved = Math.max(0, Math.round(Number(basePrice) || 0) - Math.max(0, Math.round(Number(tier?.unitPrice) || 0)));
+  const count = Math.max(1, Math.round(Number(qty) || 1));
+  return {
+    unitSaved,
+    totalSaved: unitSaved * count,
+  };
+}
+
+function formatWholesaleSavings(tier, basePrice = 0, qty = tier?.minQty || 1) {
+  const savings = getWholesaleSavings(tier, basePrice, qty);
+  if (!savings.unitSaved) return "";
+  return `Save ${formatMoney(savings.unitSaved)} each / ${formatMoney(savings.totalSaved)} at ${Math.max(1, Math.round(Number(qty) || 1))} pcs`;
+}
+
 function renderWholesaleContent(product, variant = null) {
   const tiers = getWholesaleTiers(product, variant);
   if (!tiers.length) return "";
   const cheapest = getCheapestWholesaleTier(product, variant);
+  const basePrice = getWholesaleBasePrice(product, variant);
   const label = product.preorderEnabled ? "Lowest preorder wholesale" : "Lowest wholesale";
+  const cheapestSavings = formatWholesaleSavings(cheapest, basePrice);
   return `
     <div class="wholesale-strip-head">
-      <span>${label}: ${escapeHtml(formatWholesaleTierLabel(cheapest))} at ${cheapest.minQty}+ pcs</span>
+      <span>${label}: ${escapeHtml(formatWholesaleTierLabel(cheapest))} at ${cheapest.minQty}+ pcs${cheapestSavings ? ` / ${escapeHtml(cheapestSavings)}` : ""}</span>
       <button type="button" data-toggle-wholesale>Show all</button>
     </div>
     <div class="wholesale-tier-list" hidden>
-      ${tiers.map((tier) => `<span>${tier.minQty}+ pcs ${escapeHtml(formatWholesaleTierLabel(tier))}</span>`).join("")}
+      ${tiers
+        .map((tier) => {
+          const savings = formatWholesaleSavings(tier, basePrice);
+          return `<span>${tier.minQty}+ pcs ${escapeHtml(formatWholesaleTierLabel(tier))}${savings ? ` / ${escapeHtml(savings)}` : ""}</span>`;
+        })
+        .join("")}
     </div>
   `;
 }
@@ -1682,6 +1704,16 @@ function getCartTotal() {
     const line = getCartLine(cartKey);
     if (!line) return sum;
     return sum + getProductEffectivePrice(line.product, qty, line.variant) * qty;
+  }, 0);
+}
+
+function getCartSavings() {
+  return Object.entries(state.cart).reduce((sum, [cartKey, qty]) => {
+    const line = getCartLine(cartKey);
+    if (!line) return sum;
+    const basePrice = getWholesaleBasePrice(line.product, line.variant);
+    const paidPrice = getProductEffectivePrice(line.product, qty, line.variant);
+    return sum + Math.max(0, basePrice - paidPrice) * qty;
   }, 0);
 }
 
@@ -2211,8 +2243,9 @@ function closeCheckoutModal() {
 function renderCheckoutModal() {
   if (!els.checkoutOverlay) return;
   updateCheckoutButtonState();
+  const savedTotal = getCartSavings();
   els.checkoutModalTotal.textContent = formatMoney(getCartTotal());
-  els.checkoutModalCount.textContent = `${getCartUnits()} pc${getCartUnits() === 1 ? "" : "s"}`;
+  els.checkoutModalCount.textContent = `${getCartUnits()} pc${getCartUnits() === 1 ? "" : "s"}${savedTotal ? ` / saved ${formatMoney(savedTotal)}` : ""}`;
   els.checkoutModalList.innerHTML = renderCartLineItems({ compact: true }) || `<div class="empty-store">Cart empty</div>`;
   els.checkoutUpsellList.innerHTML = renderUpsellCards();
   els.checkoutUpsellList.classList.toggle("empty", !getCheckoutUpsells().length);
