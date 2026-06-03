@@ -633,14 +633,34 @@ function loadState() {
 
 function hasCustomCommunityContent(communityState = {}) {
   const products = Array.isArray(communityState.products) ? communityState.products : [];
-  const defaultProductIds = new Set([...defaultProducts, ...demoProducts].map((product) => product.id));
-  const hasCustomProducts = products.some((product) => product?.id && !defaultProductIds.has(product.id));
+  const seededProductsById = new Map([...defaultProducts, ...demoProducts].map((product) => [product.id, product]));
+  const hasCustomProducts = products.some((product) => product?.id && !isSeededProductMatch(product, seededProductsById.get(product.id)));
   const visibleChat = Array.isArray(communityState.chat)
     ? communityState.chat.filter((message) => (!message.system || message.type === "receipt") && !String(message.id || "").startsWith("chat-seed-"))
     : [];
   const hasOrders = Array.isArray(communityState.receipts) && communityState.receipts.length > 0;
   const hasAnnouncements = Array.isArray(communityState.announcements) && communityState.announcements.length > 0;
   return hasCustomProducts || visibleChat.length > 0 || hasOrders || hasAnnouncements;
+}
+
+function isSeededProductMatch(product, seededProduct) {
+  if (!seededProduct) return false;
+  const comparableKeys = [
+    "name",
+    "category",
+    "type",
+    "description",
+    "originalPrice",
+    "salePrice",
+    "stock",
+    "preorderEnabled",
+    "preorderPrice",
+    "preorderStock",
+    "banner",
+    "featured",
+    "image",
+  ];
+  return comparableKeys.every((key) => product?.[key] === seededProduct?.[key]) && JSON.stringify(product?.wholesaleTiers || []) === JSON.stringify(seededProduct?.wholesaleTiers || []);
 }
 
 function hasRemoteCommunityContent(communityState = {}) {
