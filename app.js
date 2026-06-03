@@ -2166,6 +2166,11 @@ function getCheckoutUpsells() {
   return [...wholesaleTargets, ...addOns].slice(0, 3);
 }
 
+function getSuggestionImage(suggestion) {
+  if (!suggestion?.product) return "";
+  return suggestion.type === "wholesale" ? suggestion.product.wholesaleImage || suggestion.product.image : suggestion.product.image;
+}
+
 function getReceiptUnits(receipt) {
   if (receipt.items) {
     return receipt.items.reduce((sum, item) => sum + item.qty, 0);
@@ -3301,16 +3306,19 @@ function renderCartSuggestions() {
       </div>
       ${suggestions
         .map(
-          (suggestion) => `
+          (suggestion) => {
+            const suggestionImage = getSuggestionImage(suggestion);
+            return `
             <article class="cart-suggestion ${suggestion.type}">
-              <img src="${escapeHtml(suggestion.product.image)}" alt="${escapeHtml(suggestion.product.name)}" loading="lazy" />
+              <img src="${escapeHtml(suggestionImage)}" alt="${escapeHtml(suggestion.product.name)}" loading="lazy" />
               <div>
                 <strong>${escapeHtml(suggestion.title)}</strong>
                 <span>${escapeHtml(suggestion.detail)}</span>
               </div>
               <button class="ghost-button" type="button" data-add="${escapeHtml(suggestion.product.id)}" data-variant-id="${escapeHtml(suggestion.variantId || "")}" data-order-mode="${escapeHtml(suggestion.mode || "stock")}" data-add-qty="${suggestion.addQty}">${escapeHtml(suggestion.action)}</button>
             </article>
-          `,
+          `;
+          },
         )
         .join("")}
     `
@@ -3322,16 +3330,19 @@ function renderUpsellCards() {
   return upsells.length
     ? upsells
         .map(
-          (suggestion) => `
+          (suggestion) => {
+            const suggestionImage = getSuggestionImage(suggestion);
+            return `
             <article class="upsell-card ${suggestion.type}">
-              <img src="${escapeHtml(suggestion.product.image)}" alt="${escapeHtml(suggestion.product.name)}" loading="lazy" />
+              <img src="${escapeHtml(suggestionImage)}" alt="${escapeHtml(suggestion.product.name)}" loading="lazy" />
               <div>
                 <strong>${escapeHtml(suggestion.title)}</strong>
                 <span>${escapeHtml(suggestion.detail)}</span>
               </div>
               <button class="ghost-button" type="button" data-add="${escapeHtml(suggestion.product.id)}" data-variant-id="${escapeHtml(suggestion.variantId || "")}" data-order-mode="${escapeHtml(suggestion.mode || "stock")}" data-add-qty="${suggestion.addQty}">${escapeHtml(suggestion.action)}</button>
             </article>
-          `,
+          `;
+          },
         )
         .join("")
     : `<div class="empty-store compact-empty">No add-ons available.</div>`;
