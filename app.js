@@ -236,6 +236,8 @@ const defaultTrollControls = {
   memberStatsEnabled: false,
   activeMultiplier: 1,
   totalMultiplier: 1,
+  activeMin: 0,
+  activeMax: 0,
   inactiveMembers: 0,
   cursorByTrigger: {},
   firstMessageDayByUser: {},
@@ -378,6 +380,7 @@ let lastCommunitySnapshot = "";
 let chatSearchQuery = "";
 let focusedBulkBuyProductId = "";
 let trollStatsSaveTimer = null;
+let fakeActiveMembersSnapshot = { value: 0, rangeKey: "", nextAt: 0 };
 
 const els = {
   anonHandle: document.querySelector("#anonHandle"),
@@ -518,6 +521,8 @@ const els = {
   adminTrollMemberStatsToggle: document.querySelector("#adminTrollMemberStatsToggle"),
   adminTrollActiveMultiplierInput: document.querySelector("#adminTrollActiveMultiplierInput"),
   adminTrollTotalMultiplierInput: document.querySelector("#adminTrollTotalMultiplierInput"),
+  adminTrollActiveMinInput: document.querySelector("#adminTrollActiveMinInput"),
+  adminTrollActiveMaxInput: document.querySelector("#adminTrollActiveMaxInput"),
   adminTrollInactiveMembersInput: document.querySelector("#adminTrollInactiveMembersInput"),
   adminSaveTrollStatsBtn: document.querySelector("#adminSaveTrollStatsBtn"),
   adminTrollMemberStatsPreview: document.querySelector("#adminTrollMemberStatsPreview"),
@@ -724,6 +729,11 @@ function normalizeTrollControls(controls = {}) {
   nextControls.memberStatsEnabled = Boolean(nextControls.memberStatsEnabled);
   nextControls.activeMultiplier = clampNumber(nextControls.activeMultiplier, 1, 50, 1);
   nextControls.totalMultiplier = clampNumber(nextControls.totalMultiplier, 1, 50, 1);
+  nextControls.activeMin = clampNumber(nextControls.activeMin, 0, 9999, 0);
+  nextControls.activeMax = clampNumber(nextControls.activeMax, 0, 9999, 0);
+  if (nextControls.activeMax < nextControls.activeMin) {
+    nextControls.activeMax = nextControls.activeMin;
+  }
   nextControls.inactiveMembers = clampNumber(nextControls.inactiveMembers, 0, 9999, 0);
   nextControls.cursorByTrigger = nextControls.cursorByTrigger && typeof nextControls.cursorByTrigger === "object" ? nextControls.cursorByTrigger : {};
   nextControls.firstMessageDayByUser =
@@ -2491,10 +2501,27 @@ function getRealGroupPresenceStats() {
   return stats;
 }
 
+function getRandomizedAlwaysActiveCount(controls, fallbackActive = 0) {
+  const min = Math.max(0, Math.round(Number(controls.activeMin) || 0));
+  const max = Math.max(min, Math.round(Number(controls.activeMax) || 0));
+  if (!max) return fallbackActive;
+  const rangeKey = `${min}:${max}`;
+  const now = Date.now();
+  if (fakeActiveMembersSnapshot.rangeKey !== rangeKey || fakeActiveMembersSnapshot.nextAt <= now) {
+    fakeActiveMembersSnapshot = {
+      rangeKey,
+      value: Math.floor(min + Math.random() * (max - min + 1)),
+      nextAt: now + Math.floor(5000 + Math.random() * 7000),
+    };
+  }
+  return Math.max(fallbackActive, fakeActiveMembersSnapshot.value);
+}
+
 function getAdjustedGroupPresenceStats(realStats) {
   const controls = normalizeTrollControls(state.trollControls);
   if (!controls.memberStatsEnabled) return realStats;
-  const active = Math.max(realStats.active, realStats.active * controls.activeMultiplier);
+  const multipliedActive = Math.max(realStats.active, realStats.active * controls.activeMultiplier);
+  const active = getRandomizedAlwaysActiveCount(controls, multipliedActive);
   const baseTotal = Math.max(realStats.members, active);
   const members = Math.max(active, baseTotal * controls.totalMultiplier + controls.inactiveMembers);
   return {
@@ -4699,6 +4726,8 @@ function renderAdminTrollControls() {
   els.adminTrollMemberStatsToggle.checked = controls.memberStatsEnabled;
   if (document.activeElement !== els.adminTrollActiveMultiplierInput) els.adminTrollActiveMultiplierInput.value = controls.activeMultiplier;
   if (document.activeElement !== els.adminTrollTotalMultiplierInput) els.adminTrollTotalMultiplierInput.value = controls.totalMultiplier;
+  if (document.activeElement !== els.adminTrollActiveMinInput) els.adminTrollActiveMinInput.value = controls.activeMin;
+  if (document.activeElement !== els.adminTrollActiveMaxInput) els.adminTrollActiveMaxInput.value = controls.activeMax;
   if (document.activeElement !== els.adminTrollInactiveMembersInput) els.adminTrollInactiveMembersInput.value = controls.inactiveMembers;
   els.adminTrollMemberStatsPreview.innerHTML = `
     <article>
@@ -4708,6 +4737,10 @@ function renderAdminTrollControls() {
     <article>
       <span>Shown active</span>
       <strong>${adjustedStats.active}</strong>
+    </article>
+    <article>
+      <span>Always online range</span>
+      <strong>${controls.activeMin}-${controls.activeMax}</strong>
     </article>
     <article>
       <span>Shown total</span>
@@ -5252,8 +5285,11 @@ async function saveTrollStats() {
     memberStatsEnabled: els.adminTrollMemberStatsToggle.checked,
     activeMultiplier: getAdminNumber(els.adminTrollActiveMultiplierInput, 1, 1, 50),
     totalMultiplier: getAdminNumber(els.adminTrollTotalMultiplierInput, 1, 1, 50),
+    activeMin: getAdminNumber(els.adminTrollActiveMinInput, 0, 0, 9999),
+    activeMax: getAdminNumber(els.adminTrollActiveMaxInput, 0, 0, 9999),
     inactiveMembers: getAdminNumber(els.adminTrollInactiveMembersInput, 0, 0, 9999),
   };
+  if (nextStats.activeMax < nextStats.activeMin) nextStats.activeMax = nextStats.activeMin;
   state.trollControls = getTrollControls();
   Object.assign(state.trollControls, nextStats);
   await saveCommunityState();
@@ -6579,7 +6615,7 @@ els.adminTrollMemberStatsToggle.addEventListener("change", async (event) => {
   await saveCommunityState();
   render();
 });
-[els.adminTrollActiveMultiplierInput, els.adminTrollTotalMultiplierInput, els.adminTrollInactiveMembersInput].forEach((input) => {
+[els.adminTrollActiveMultiplierInput, els.adminTrollTotalMultiplierInput, els.adminTrollActiveMinInput, els.adminTrollActiveMaxInput, els.adminTrollInactiveMembersInput].forEach((input) => {
   input.addEventListener("input", scheduleTrollStatsSave);
   input.addEventListener("change", scheduleTrollStatsSave);
 });
@@ -6861,6 +6897,10 @@ async function startApp() {
     renderProducts();
     renderCart();
   }, 30000);
+  window.setInterval(() => {
+    renderCommunityState();
+    if (isAdmin()) renderAdminTrollControls();
+  }, 7000);
   window.setInterval(() => {
     if (!state.joinedCommunity) return;
     saveCommunityState();
