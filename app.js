@@ -1522,8 +1522,8 @@ function renderDealHighlights(product, variant = null, mode = "") {
   const salePercent = getDiscountPercent(originalPrice, displayPrice);
   const wholesaleTiers = getWholesaleTiers(product, variant, mode);
   const wholesale = getCheapestWholesaleTier(product, variant, mode);
-  const wholesaleBasePrice = getWholesaleBasePrice(product, variant, mode);
-  const wholesalePercent = wholesale ? wholesale.discountPercent || getDiscountPercent(getWholesaleBasePrice(product, variant, mode), wholesale.unitPrice) : 0;
+  const wholesaleReferencePrice = originalPrice;
+  const wholesalePercent = wholesale ? wholesale.discountPercent || getDiscountPercent(wholesaleReferencePrice, wholesale.unitPrice) : 0;
   const preorderPrice = getVariantPreorderPrice(product, variant);
   const preorderPercent = product.preorderEnabled ? getDiscountPercent(originalPrice, preorderPrice) : 0;
   const bestPercent = Math.max(salePercent || 0, wholesalePercent || 0, preorderPercent || 0);
@@ -1533,8 +1533,8 @@ function renderDealHighlights(product, variant = null, mode = "") {
       ? `<span class="hot" role="menuitem"><b>Today sale</b><strong>${escapeHtml(formatMoney(displayPrice))}</strong><em>${escapeHtml(formatPercent(salePercent))}% off</em><small>Was ${escapeHtml(formatMoney(originalPrice))}</small></span>`
       : "",
     ...wholesaleTiers.map((tier) => {
-      const tierPercent = tier.discountPercent || getDiscountPercent(wholesaleBasePrice, tier.unitPrice);
-      const savings = formatWholesaleSavings(tier, wholesaleBasePrice);
+      const tierPercent = tier.discountPercent || getDiscountPercent(wholesaleReferencePrice, tier.unitPrice);
+      const savings = formatWholesaleSavings(tier, wholesaleReferencePrice);
       return `<span role="menuitem"><b>${tier.minQty}+ pcs bundle</b><strong>${escapeHtml(formatMoney(tier.unitPrice))} each</strong>${tierPercent ? `<em>${escapeHtml(formatPercent(tierPercent))}% off</em>` : ""}<small>${escapeHtml(savings || "Bundle pricing available")}</small></span>`;
     }),
     preorderPercent
