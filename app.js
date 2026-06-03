@@ -287,6 +287,7 @@ let remoteSyncDisabled = false;
 let mediaUploadDisabled = false;
 let sharedCommunityReady = false;
 let sharedCommunityUnavailable = false;
+let pendingLocalCommunitySeed = null;
 const userStateKeys = [
   "handle",
   "username",
@@ -606,20 +607,45 @@ function loadState() {
   const legacyState = readSavedState(legacyStateKey);
   const savedUserState = readSavedState(userStateKey);
   const savedCommunityState = readSavedState(communityStateKey);
+  const savedCommunityCandidate = {
+    ...pickStateKeys(legacyState, communityStateKeys),
+    ...pickStateKeys(savedCommunityState, communityStateKeys),
+  };
   const savedViewerState = {
     ...pickStateKeys(legacyState, userStateKeys),
     ...pickStateKeys(savedUserState, userStateKeys),
   };
   const canUseSavedCommunity = Boolean(savedViewerState.joinedCommunity || savedViewerState.username || savedViewerState.passwordHash);
+  const canPromoteSavedCommunity = hasCustomCommunityContent(savedCommunityCandidate);
+  if (canPromoteSavedCommunity) {
+    pendingLocalCommunitySeed = savedCommunityCandidate;
+  }
 
   const nextState = {
     ...base,
     ...(canUseSavedCommunity ? pickStateKeys(legacyState, [...userStateKeys, ...communityStateKeys]) : pickStateKeys(legacyState, userStateKeys)),
-    ...(canUseSavedCommunity ? pickStateKeys(savedCommunityState, communityStateKeys) : {}),
+    ...(canUseSavedCommunity || canPromoteSavedCommunity ? pickStateKeys(savedCommunityCandidate, communityStateKeys) : {}),
     ...pickStateKeys(savedUserState, userStateKeys),
   };
 
   return normalizeState(nextState);
+}
+
+function hasCustomCommunityContent(communityState = {}) {
+  const products = Array.isArray(communityState.products) ? communityState.products : [];
+  const defaultProductIds = new Set([...defaultProducts, ...demoProducts].map((product) => product.id));
+  const hasCustomProducts = products.some((product) => product?.id && !defaultProductIds.has(product.id));
+  const visibleChat = Array.isArray(communityState.chat)
+    ? communityState.chat.filter((message) => (!message.system || message.type === "receipt") && !String(message.id || "").startsWith("chat-seed-"))
+    : [];
+  const hasOrders = Array.isArray(communityState.receipts) && communityState.receipts.length > 0;
+  const hasAnnouncements = Array.isArray(communityState.announcements) && communityState.announcements.length > 0;
+  return hasCustomProducts || visibleChat.length > 0 || hasOrders || hasAnnouncements;
+}
+
+function hasRemoteCommunityContent(communityState = {}) {
+  if (!communityState || !Object.keys(communityState).length) return false;
+  return hasCustomCommunityContent(communityState) || (Array.isArray(communityState.products) && communityState.products.length > 0);
 }
 
 function readSavedState(key) {
@@ -1639,11 +1665,18 @@ async function pullCommunityState() {
     const remoteCommunity = await requestJson("/api/community");
     remoteSyncAvailable = true;
     sharedCommunityUnavailable = false;
-    if (!remoteCommunity || !Object.keys(remoteCommunity).length) {
+    if (!hasRemoteCommunityContent(remoteCommunity)) {
       sharedCommunityReady = false;
-      if (state.joinedCommunity || hasAdminCredentials()) await saveCommunityState();
+      if (pendingLocalCommunitySeed) {
+        applyCommunityState(pendingLocalCommunitySeed);
+        pendingLocalCommunitySeed = null;
+        await saveCommunityState();
+      } else if (state.joinedCommunity || hasAdminCredentials()) {
+        await saveCommunityState();
+      }
       return;
     }
+    pendingLocalCommunitySeed = null;
     sharedCommunityReady = true;
     const nextSnapshot = JSON.stringify(remoteCommunity);
     if (nextSnapshot === lastCommunitySnapshot) return;
