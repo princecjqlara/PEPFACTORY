@@ -2168,7 +2168,7 @@ function getCheckoutUpsells() {
 
 function getSuggestionImage(suggestion) {
   if (!suggestion?.product) return "";
-  return suggestion.type === "wholesale" ? suggestion.product.wholesaleImage || suggestion.product.image : suggestion.product.image;
+  return suggestion.product.wholesaleImage || suggestion.product.image;
 }
 
 function getReceiptUnits(receipt) {
