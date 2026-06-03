@@ -282,6 +282,7 @@ const defaultTrollControls = {
 };
 let remoteSyncAvailable = false;
 let remoteSyncInFlight = false;
+let remoteSyncDisabled = false;
 const userStateKeys = [
   "handle",
   "username",
@@ -1566,11 +1567,17 @@ async function requestJson(pathname, options = {}) {
     },
     ...options,
   });
-  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(`Request failed: ${response.status}`);
+    error.status = response.status;
+    error.pathname = pathname;
+    throw error;
+  }
   return response.json();
 }
 
 async function pullCommunityState() {
+  if (remoteSyncDisabled) return;
   try {
     const remoteCommunity = await requestJson("/api/community");
     remoteSyncAvailable = true;
@@ -1584,12 +1591,14 @@ async function pullCommunityState() {
     applyCommunityState(remoteCommunity);
     localStorage.setItem(communityStateKey, JSON.stringify(pickStateKeys(state, communityStateKeys)));
     render();
-  } catch {
+  } catch (error) {
+    if (error.status === 404) remoteSyncDisabled = true;
     remoteSyncAvailable = false;
   }
 }
 
 async function pushCommunityState() {
+  if (remoteSyncDisabled) return null;
   if (remoteSyncInFlight) {
     await remoteSyncInFlight;
   }
@@ -1607,7 +1616,8 @@ async function pushCommunityState() {
       localStorage.setItem(communityStateKey, JSON.stringify(pickStateKeys(state, communityStateKeys)));
     }
     remoteSyncAvailable = true;
-  } catch {
+  } catch (error) {
+    if (error.status === 404) remoteSyncDisabled = true;
     remoteSyncAvailable = false;
   } finally {
     if (remoteSyncInFlight === syncPromise) remoteSyncInFlight = false;
@@ -2410,14 +2420,20 @@ function handlePrivateChatMediaUpload(event) {
 
 async function uploadMedia(media) {
   if (!media) return null;
-  return requestJson("/api/media", {
-    method: "POST",
-    body: JSON.stringify({
-      name: media.name,
-      type: media.type,
-      file: media.src,
-    }),
-  });
+  if (remoteSyncDisabled) return { url: media.src };
+  try {
+    return await requestJson("/api/media", {
+      method: "POST",
+      body: JSON.stringify({
+        name: media.name,
+        type: media.type,
+        file: media.src,
+      }),
+    });
+  } catch (error) {
+    if (error.status === 404) remoteSyncDisabled = true;
+    return { url: media.src };
+  }
 }
 
 async function uploadChatMedia() {
@@ -5111,15 +5127,25 @@ async function saveAdminProduct() {
   const imageFile = els.adminProductImageInput.files?.[0];
   let image = els.adminProductImageUrlInput.value.trim();
   if (imageFile) {
-    const uploaded = await requestJson("/api/media", {
-      method: "POST",
-      body: JSON.stringify({
-        name: imageFile.name,
-        type: imageFile.type,
-        file: await readFileAsDataUrl(imageFile),
-      }),
-    });
-    image = uploaded.url;
+    const imageDataUrl = await readFileAsDataUrl(imageFile);
+    if (remoteSyncDisabled) {
+      image = imageDataUrl;
+    } else {
+      try {
+        const uploaded = await requestJson("/api/media", {
+          method: "POST",
+          body: JSON.stringify({
+            name: imageFile.name,
+            type: imageFile.type,
+            file: imageDataUrl,
+          }),
+        });
+        image = uploaded.url;
+      } catch (error) {
+        if (error.status === 404) remoteSyncDisabled = true;
+        image = imageDataUrl;
+      }
+    }
   }
 
   const products = getProducts();
