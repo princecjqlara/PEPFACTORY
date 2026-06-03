@@ -3989,21 +3989,37 @@ h2 {
   }
 
   .store-panel .product-card.featured-product {
+    grid-template-columns: 112px minmax(0, 1fr);
+    align-items: start;
     padding: 9px;
-    gap: 7px;
+    gap: 8px;
     border-radius: 7px;
   }
 
   .store-panel .product-card.featured-product .product-shot {
-    aspect-ratio: 1.05;
+    grid-column: 1;
+    grid-row: 1 / span 4;
+    aspect-ratio: 1;
     min-height: 0;
     height: auto;
+  }
+
+  .store-panel .product-card.featured-product .product-main,
+  .store-panel .product-card.featured-product .price,
+  .store-panel .product-card.featured-product .product-actions {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .store-panel .product-card.featured-product .product-main {
+    gap: 5px;
   }
 
   .store-panel .product-card.featured-product .product-top {
     display: grid;
     min-height: 0;
-    gap: 5px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
   }
 
   .store-panel .product-card.featured-product .product-top h2 {
@@ -4033,8 +4049,40 @@ h2 {
     display: none;
   }
 
+  .store-panel .product-card.featured-product .variant-picker {
+    max-width: none;
+  }
+
+  .store-panel .product-card.featured-product .variant-menu-button {
+    min-height: 34px;
+    padding: 6px 8px;
+  }
+
+  .store-panel .product-card.featured-product .deal-highlights {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    padding-bottom: 1px;
+    scrollbar-width: none;
+  }
+
+  .store-panel .product-card.featured-product .deal-highlights::-webkit-scrollbar {
+    display: none;
+  }
+
+  .store-panel .product-card.featured-product .deal-highlights span {
+    flex: 0 0 auto;
+    min-width: 86px;
+    padding: 6px;
+    font-size: 0.61rem;
+  }
+
+  .store-panel .product-card.featured-product .deal-highlights b {
+    font-size: 0.78rem;
+  }
+
   .store-panel .product-card.featured-product .wholesale-strip {
-    align-self: start;
+    display: none;
   }
 
   .store-panel .product-card.featured-product .wholesale-tier-list {
@@ -4045,6 +4093,7 @@ h2 {
   .store-panel .product-card.featured-product .price {
     min-height: 0;
     gap: 2px;
+    align-content: start;
   }
 
   .store-panel .product-card.featured-product .price > span {
@@ -4057,9 +4106,46 @@ h2 {
 
   .store-panel .product-card.featured-product .add-button {
     min-width: 0;
-    min-height: 38px;
+    min-height: 36px;
     padding: 0 8px;
     font-size: 0.78rem;
+  }
+
+  .store-panel .product-card.featured-product .preorder-inline-button {
+    min-height: 32px;
+    font-size: 0.72rem;
+  }
+
+  .store-panel .product-card:not(.featured-product) {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 8px;
+    padding: 9px;
+  }
+
+  .store-panel .product-card:not(.featured-product) .product-shot {
+    grid-column: 1;
+    grid-row: 1 / span 4;
+    min-height: 0;
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  .store-panel .product-card:not(.featured-product) .product-main,
+  .store-panel .product-card:not(.featured-product) .price,
+  .store-panel .product-card:not(.featured-product) .product-actions {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .store-panel .product-card:not(.featured-product) .product-description,
+  .store-panel .product-card:not(.featured-product) .preorder-summary,
+  .store-panel .product-card:not(.featured-product) .product-meta,
+  .store-panel .product-card:not(.featured-product) .wholesale-strip {
+    display: none;
+  }
+
+  .store-panel .product-grid {
+    grid-template-columns: 1fr;
   }
 
   .cart-suggestion {
