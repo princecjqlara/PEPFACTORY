@@ -330,6 +330,14 @@ const communityStateKeys = [
   "moderation",
   "products",
   "productDeletedAt",
+  "productCategoryUpdatedAt",
+  "productCategoryDeletedAt",
+  "announcementDeletedAt",
+  "chatDeletedAt",
+  "directMessageDeletedAt",
+  "memberDeletedAt",
+  "replacementDeletedAt",
+  "trollRuleDeletedAt",
   "productCategories",
   "demoCatalogSeeded",
   "buyerControlsEnabled",
@@ -375,6 +383,14 @@ const fallbackState = {
   trollControls: structuredClone(defaultTrollControls),
   products: structuredClone(defaultProducts),
   productDeletedAt: {},
+  productCategoryUpdatedAt: {},
+  productCategoryDeletedAt: {},
+  announcementDeletedAt: {},
+  chatDeletedAt: {},
+  directMessageDeletedAt: {},
+  memberDeletedAt: {},
+  replacementDeletedAt: {},
+  trollRuleDeletedAt: {},
   productCategories: [...new Set(defaultProducts.map((product) => product.category))],
   demoCatalogSeeded: true,
   cart: {},
@@ -822,9 +838,19 @@ function normalizeState(nextState) {
   nextState.adminTrollAccountSearch = nextState.adminTrollAccountSearch || "";
   nextState.cartOpen = Boolean(nextState.cartOpen);
   nextState.storeSearch = nextState.storeSearch || "";
-  nextState.productDeletedAt = normalizeProductDeletedAt(nextState.productDeletedAt);
+  nextState.productDeletedAt = normalizeDeletedAtMap(nextState.productDeletedAt);
+  nextState.productCategoryUpdatedAt = normalizeDeletedAtMap(nextState.productCategoryUpdatedAt);
+  nextState.productCategoryDeletedAt = normalizeDeletedAtMap(nextState.productCategoryDeletedAt);
+  nextState.announcementDeletedAt = normalizeDeletedAtMap(nextState.announcementDeletedAt);
+  nextState.chatDeletedAt = normalizeDeletedAtMap(nextState.chatDeletedAt);
+  nextState.directMessageDeletedAt = normalizeDeletedAtMap(nextState.directMessageDeletedAt);
+  nextState.memberDeletedAt = normalizeDeletedAtMap(nextState.memberDeletedAt);
+  nextState.replacementDeletedAt = normalizeDeletedAtMap(nextState.replacementDeletedAt);
+  nextState.trollRuleDeletedAt = normalizeDeletedAtMap(nextState.trollRuleDeletedAt);
   nextState.products = Array.isArray(nextState.products) ? nextState.products.map(normalizeProduct) : structuredClone(defaultProducts);
-  nextState.products = nextState.products.filter((product) => !isProductDeleted(product, nextState.productDeletedAt));
+  nextState.products = nextState.products
+    .filter((product) => !isDeleted(product.id, nextState.productDeletedAt, product.updatedAt))
+    .map((product) => withActiveProductCategory(product, nextState.productCategoryDeletedAt));
   if (!nextState.demoCatalogSeeded) {
     nextState.demoCatalogSeeded = true;
   }
@@ -841,13 +867,23 @@ function normalizeState(nextState) {
             }),
         )
       : {};
-  nextState.productCategories = Array.isArray(nextState.productCategories) ? nextState.productCategories.filter(Boolean) : [];
+  nextState.productCategories = Array.isArray(nextState.productCategories)
+    ? nextState.productCategories.filter(
+        (category) => category && !isDeleted(category, nextState.productCategoryDeletedAt, nextState.productCategoryUpdatedAt[category]),
+      )
+    : [];
   const categories = getStoreCategories(nextState.products, nextState.productCategories);
   nextState.storeCategory = categories.includes(nextState.storeCategory) ? nextState.storeCategory : "All";
   nextState.announcements = nextState.announcements || [];
   nextState.buyerControlsEnabled = nextState.buyerControlsEnabled !== false;
   nextState.goldenTicketEnabled = nextState.goldenTicketEnabled !== false;
   nextState.trollControls = normalizeTrollControls(nextState.trollControls);
+  nextState.trollControls.rules = nextState.trollControls.rules.filter(
+    (rule) => !isDeleted(rule.id, nextState.trollRuleDeletedAt) && !isDeleted(rule.account, nextState.memberDeletedAt, getMemberUpdatedAt(nextState.members?.[rule.account])),
+  );
+  nextState.trollControls.trollAccounts = nextState.trollControls.trollAccounts.filter((account) =>
+    !isDeleted(account, nextState.memberDeletedAt, getMemberUpdatedAt(nextState.members?.[account])),
+  );
   nextState.dataResetVersion = nextState.dataResetVersion || "";
   nextState.dataResetAt = Math.max(0, Number(nextState.dataResetAt) || 0);
   nextState.directMessages = Array.isArray(nextState.directMessages)
@@ -859,11 +895,18 @@ function normalizeState(nextState) {
         media: message.media || null,
       }))
     : [];
-  nextState.members = nextState.members || {};
+  nextState.members = Object.fromEntries(
+    Object.entries(nextState.members || {}).filter(([memberId, member]) => !isDeleted(memberId, nextState.memberDeletedAt, getMemberUpdatedAt(member))),
+  );
   nextState.moderation = {
-    blocked: nextState.moderation?.blocked || {},
-    timeouts: nextState.moderation?.timeouts || {},
-    replacements: nextState.moderation?.replacements || [],
+    blocked: Object.fromEntries(Object.entries(nextState.moderation?.blocked || {}).filter(([memberId]) => !isDeleted(memberId, nextState.memberDeletedAt))),
+    timeouts: Object.fromEntries(Object.entries(nextState.moderation?.timeouts || {}).filter(([memberId]) => !isDeleted(memberId, nextState.memberDeletedAt))),
+    replacements: (nextState.moderation?.replacements || []).filter(
+      (entry) =>
+        !isDeleted(getReplacementSignalId(entry), nextState.replacementDeletedAt) &&
+        !isDeleted(entry.previous, nextState.memberDeletedAt) &&
+        !isDeleted(entry.next, nextState.memberDeletedAt),
+    ),
     clearChatAt: Math.max(0, Number(nextState.moderation?.clearChatAt) || 0),
     clearReceiptsAt: Math.max(0, Number(nextState.moderation?.clearReceiptsAt) || 0),
   };
@@ -894,13 +937,15 @@ function normalizeState(nextState) {
         ...Object.fromEntries(reactionTypes.map((reaction) => [reaction.key, 0])),
         ...(message.reactions || {}),
       },
-    }));
+    }))
+    .filter((message) => !isDeleted(message.id, nextState.chatDeletedAt));
   nextState.directMessages = nextState.directMessages.filter(
     (message) => !nextState.moderation.clearReceiptsAt || !message.receiptId || (message.createdAt || 0) > nextState.moderation.clearReceiptsAt,
-  );
+  ).filter((message) => !isDeleted(message.id, nextState.directMessageDeletedAt));
   nextState.announcements = nextState.announcements
     .filter((announcement) => !String(announcement.id || "").startsWith("ann-seed-"))
-    .filter((announcement) => !nextState.moderation.clearChatAt || (announcement.createdAt || 0) > nextState.moderation.clearChatAt);
+    .filter((announcement) => !nextState.moderation.clearChatAt || (announcement.createdAt || 0) > nextState.moderation.clearChatAt)
+    .filter((announcement) => !isDeleted(announcement.id, nextState.announcementDeletedAt));
   if (nextState.dataResetAt) {
     filterStateAfterReset(nextState, nextState.dataResetAt);
   }
@@ -908,6 +953,19 @@ function normalizeState(nextState) {
 }
 
 function filterStateAfterReset(targetState, resetAt) {
+  [
+    "productDeletedAt",
+    "productCategoryUpdatedAt",
+    "productCategoryDeletedAt",
+    "announcementDeletedAt",
+    "chatDeletedAt",
+    "directMessageDeletedAt",
+    "memberDeletedAt",
+    "replacementDeletedAt",
+    "trollRuleDeletedAt",
+  ].forEach((key) => {
+    targetState[key] = Object.fromEntries(Object.entries(normalizeDeletedAtMap(targetState[key])).filter(([, timestamp]) => timestamp > resetAt));
+  });
   targetState.chat = (targetState.chat || []).filter((message) => (Number(message.createdAt) || 0) > resetAt);
   targetState.directMessages = (targetState.directMessages || []).filter((message) => (Number(message.createdAt) || 0) > resetAt);
   targetState.announcements = (targetState.announcements || []).filter((announcement) => (Number(announcement.createdAt) || 0) > resetAt);
@@ -978,18 +1036,56 @@ function normalizeProduct(product, index = 0) {
   };
 }
 
-function normalizeProductDeletedAt(deletedAt = {}) {
+function normalizeDeletedAtMap(deletedAt = {}) {
   if (!deletedAt || typeof deletedAt !== "object" || Array.isArray(deletedAt)) return {};
   return Object.fromEntries(
     Object.entries(deletedAt)
-      .map(([productId, timestamp]) => [String(productId || "").trim(), Math.max(0, Number(timestamp) || 0)])
-      .filter(([productId, timestamp]) => productId && timestamp > 0),
+      .map(([recordId, timestamp]) => [String(recordId || "").trim(), Math.max(0, Number(timestamp) || 0)])
+      .filter(([recordId, timestamp]) => recordId && timestamp > 0),
   );
 }
 
-function isProductDeleted(product, deletedAt = {}) {
-  const deletedTimestamp = Number(deletedAt?.[product?.id]) || 0;
-  return deletedTimestamp > 0 && deletedTimestamp > (Number(product?.updatedAt) || 0);
+function mergeDeletedAtMaps(...deletedAtMaps) {
+  return deletedAtMaps.reduce((merged, deletedAt) => {
+    Object.entries(normalizeDeletedAtMap(deletedAt)).forEach(([recordId, timestamp]) => {
+      merged[recordId] = Math.max(Number(merged[recordId]) || 0, timestamp);
+    });
+    return merged;
+  }, {});
+}
+
+function isDeleted(recordId, deletedAt = {}, updatedAt = 0) {
+  const deletedTimestamp = Number(deletedAt?.[recordId]) || 0;
+  return deletedTimestamp > 0 && deletedTimestamp > (Number(updatedAt) || 0);
+}
+
+function markDeleted(deletedAtKey, recordId, timestamp = Date.now()) {
+  if (!recordId) return;
+  state[deletedAtKey] = {
+    ...normalizeDeletedAtMap(state[deletedAtKey]),
+    [String(recordId)]: timestamp,
+  };
+}
+
+function restoreDeleted(deletedAtKey, recordId) {
+  if (!recordId) return;
+  state[deletedAtKey] = normalizeDeletedAtMap(state[deletedAtKey]);
+  delete state[deletedAtKey][String(recordId)];
+}
+
+function withActiveProductCategory(product, categoryDeletedAt = {}) {
+  const categoryDeletedTimestamp = Number(categoryDeletedAt?.[product.category]) || 0;
+  if (!categoryDeletedTimestamp || categoryDeletedTimestamp <= (Number(product.updatedAt) || 0)) return product;
+  return { ...product, category: "General", updatedAt: categoryDeletedTimestamp };
+}
+
+function getMemberUpdatedAt(member) {
+  return Math.max(Number(member?.joinedAt) || 0, Number(member?.lastSeen) || 0);
+}
+
+function getReplacementSignalId(entry) {
+  const createdAt = Number(entry?.createdAt) || 0;
+  return createdAt ? String(createdAt) : "";
 }
 
 function normalizeProductVariants(variants, product = {}) {
@@ -1647,6 +1743,19 @@ function applyCommunityState(nextCommunityState) {
   if (!Object.hasOwn(nextCommunityState || {}, "demoCatalogSeeded")) {
     mergedCommunityState.demoCatalogSeeded = true;
   }
+  [
+    "productDeletedAt",
+    "productCategoryUpdatedAt",
+    "productCategoryDeletedAt",
+    "announcementDeletedAt",
+    "chatDeletedAt",
+    "directMessageDeletedAt",
+    "memberDeletedAt",
+    "replacementDeletedAt",
+    "trollRuleDeletedAt",
+  ].forEach((key) => {
+    mergedCommunityState[key] = mergeDeletedAtMaps(state[key], nextCommunityState?.[key]);
+  });
   mergedCommunityState.chat = mergeCommunityRecords(state.chat, nextCommunityState?.chat, { limit: 140 });
   mergedCommunityState.directMessages = mergeCommunityRecords(state.directMessages, nextCommunityState?.directMessages, { limit: 300 });
   mergedCommunityState.announcements = mergeCommunityRecords(state.announcements, nextCommunityState?.announcements, { limit: 30, descending: true });
@@ -4897,6 +5006,7 @@ async function saveTrollRule() {
 
   await pullCommunityState();
   state.trollControls = getTrollControls();
+  restoreDeleted("trollRuleDeletedAt", nextRule.id);
   state.trollControls.rules = state.trollControls.rules.filter((rule) => rule.id !== nextRule.id);
   state.trollControls.rules.push(nextRule);
   state.trollControls.selectedRuleId = nextRule.id;
@@ -4950,6 +5060,7 @@ async function deleteTrollRule() {
   if (!rule) return;
   await pullCommunityState();
   state.trollControls = getTrollControls();
+  markDeleted("trollRuleDeletedAt", rule.id);
   state.trollControls.rules = state.trollControls.rules.filter((entry) => entry.id !== rule.id);
   state.trollControls.selectedRuleId = "";
   await saveCommunityState();
@@ -5339,6 +5450,11 @@ async function addAdminCategory() {
   if (!requireAdmin()) return;
   const category = els.adminNewCategoryInput.value.trim();
   if (!category) return;
+  state.productCategoryUpdatedAt = {
+    ...normalizeDeletedAtMap(state.productCategoryUpdatedAt),
+    [category]: Date.now(),
+  };
+  restoreDeleted("productCategoryDeletedAt", category);
   const options = [...els.adminProductCategorySelect.options].map((option) => option.value);
   if (!options.includes(category)) {
     els.adminProductCategorySelect.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`);
@@ -5356,8 +5472,9 @@ async function removeAdminCategory(categoryName = els.adminProductCategorySelect
   if (!category || category === "General") return;
   if (!window.confirm(`Remove category ${category}? Products in it will move to General.`)) return;
 
-  state.productCategories = (state.productCategories || []).filter((entry) => entry !== category);
   const updatedAt = Date.now();
+  markDeleted("productCategoryDeletedAt", category, updatedAt);
+  state.productCategories = (state.productCategories || []).filter((entry) => entry !== category);
   state.products = getProducts().map((product) => (product.category === category ? { ...product, category: "General", updatedAt } : product));
   if (!state.productCategories.includes("General")) {
     state.productCategories = [...state.productCategories, "General"];
@@ -5450,7 +5567,7 @@ async function saveAdminProduct() {
   product.updatedAt = Date.now();
   const currentProducts = getProducts();
   const exists = currentProducts.some((item) => item.id === product.id);
-  delete state.productDeletedAt[product.id];
+  restoreDeleted("productDeletedAt", product.id);
   state.products = exists ? currentProducts.map((item) => (item.id === product.id ? product : item)) : [...currentProducts, product];
   addChat("System", `Admin ${exists ? "updated" : "added"} product ${product.name}.`, true, {
     announcementTitle: exists ? "Product updated" : "Product added",
@@ -5467,10 +5584,7 @@ async function removeAdminProduct(productId = els.adminProductSelect.value) {
   if (!window.confirm(`Remove ${product.name} from the store?`)) return;
 
   await pullCommunityState();
-  state.productDeletedAt = {
-    ...normalizeProductDeletedAt(state.productDeletedAt),
-    [productId]: Date.now(),
-  };
+  markDeleted("productDeletedAt", productId);
   state.products = getProducts().filter((item) => item.id !== productId);
   Object.keys(state.cart).forEach((cartKey) => {
     if (parseCartKey(cartKey).productId === productId) delete state.cart[cartKey];
@@ -5523,6 +5637,7 @@ async function runGoldenTicketNow() {
 async function deleteAnnouncement(announcementId) {
   if (!requireAdmin()) return;
   await pullCommunityState();
+  markDeleted("announcementDeletedAt", announcementId);
   state.announcements = state.announcements.filter((announcement) => announcement.id !== announcementId);
   await saveCommunityState();
   render();
@@ -5538,6 +5653,7 @@ async function deleteChatMessage(messageId) {
     render();
     return;
   }
+  markDeleted("chatDeletedAt", messageId);
   state.chat = state.chat.filter((message) => message.id !== messageId);
   state.openActionMenuId = null;
   state.openReactionMenuId = null;
@@ -5611,6 +5727,7 @@ async function createQuickAccount() {
   }
 
   const passwordHash = await hashPassword(password);
+  restoreDeleted("memberDeletedAt", username);
   saveAccount(username, passwordHash);
   els.adminQuickUsernameInput.value = "";
   els.adminQuickPasswordInput.value = "";
@@ -5669,6 +5786,7 @@ async function createReplacementAccount() {
     return;
   }
   const passwordHash = await hashPassword(password);
+  restoreDeleted("memberDeletedAt", next);
   saveAccount(next, passwordHash);
   await pullCommunityState();
   state.moderation = state.moderation || { blocked: {}, timeouts: {}, replacements: [] };
@@ -5758,13 +5876,20 @@ async function deleteAccount(username) {
   await pullCommunityState();
   state.moderation = state.moderation || { blocked: {}, timeouts: {}, replacements: [] };
   if (shouldRemoveMessages) removeMemberNonReceiptMessages(username);
+  markDeleted("memberDeletedAt", username);
   deleteLocalAccount(username);
   delete state.members[username];
   delete state.moderation.blocked[username];
   delete state.moderation.timeouts[username];
+  state.moderation.replacements.forEach((entry) => {
+    if (entry.previous === username || entry.next === username) markDeleted("replacementDeletedAt", getReplacementSignalId(entry));
+  });
   state.moderation.replacements = state.moderation.replacements.filter((entry) => entry.previous !== username && entry.next !== username);
   state.trollControls = getTrollControls();
   state.trollControls.trollAccounts = state.trollControls.trollAccounts.filter((account) => account !== username);
+  state.trollControls.rules.forEach((rule) => {
+    if (rule.account === username) markDeleted("trollRuleDeletedAt", rule.id);
+  });
   state.trollControls.rules = state.trollControls.rules.filter((rule) => rule.account !== username);
 
   if (state.handle === username || state.adminActingAs === username) {
@@ -5783,7 +5908,13 @@ async function deleteAccount(username) {
 function removeMemberNonReceiptMessages(memberId) {
   const aliases = new Set(getMemberAliases(memberId));
   aliases.add(memberId);
+  state.chat.forEach((message) => {
+    if (message.type !== "receipt" && aliases.has(message.author)) markDeleted("chatDeletedAt", message.id);
+  });
   state.chat = state.chat.filter((message) => message.type === "receipt" || !aliases.has(message.author));
+  (state.directMessages || []).forEach((message) => {
+    if (aliases.has(message.from) && !message.receiptId) markDeleted("directMessageDeletedAt", message.id);
+  });
   state.directMessages = (state.directMessages || []).filter((message) => {
     const sentByMember = aliases.has(message.from);
     return !sentByMember || Boolean(message.receiptId);
@@ -5797,6 +5928,7 @@ async function deleteReplacementSignal(createdAt) {
 
   await pullCommunityState();
   state.moderation = state.moderation || { blocked: {}, timeouts: {}, replacements: [] };
+  markDeleted("replacementDeletedAt", String(signalTime));
   state.moderation.replacements = state.moderation.replacements.filter((entry) => Number(entry.createdAt) !== signalTime);
   await saveCommunityState();
   render();
