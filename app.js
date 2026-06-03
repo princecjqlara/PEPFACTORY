@@ -1710,6 +1710,7 @@ function closeDealMenus(except = null) {
   document.querySelectorAll(".deal-highlights").forEach((deals) => {
     if (deals === except) return;
     deals.classList.remove("open");
+    deals.closest(".product-card")?.classList.remove("deal-menu-open");
     const menu = deals.querySelector(".deal-menu");
     const button = deals.querySelector("[data-toggle-deals]");
     if (menu) menu.hidden = true;
@@ -6328,6 +6329,7 @@ document.addEventListener("click", (event) => {
       closeVariantMenus();
       menu.hidden = !shouldOpen;
       deals.classList.toggle("open", shouldOpen);
+      deals.closest(".product-card")?.classList.toggle("deal-menu-open", shouldOpen);
       toggleDealButton.setAttribute("aria-expanded", String(shouldOpen));
     }
     return;

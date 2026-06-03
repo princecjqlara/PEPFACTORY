@@ -1518,6 +1518,15 @@ h2 {
   z-index: 1;
 }
 
+.store-panel .product-card.featured-product.deal-menu-open .product-main {
+  z-index: 70;
+}
+
+.store-panel .product-card.featured-product.deal-menu-open .price,
+.store-panel .product-card.featured-product.deal-menu-open .product-actions {
+  z-index: 1;
+}
+
 .store-panel .product-card.featured-product .product-shot {
   min-height: 168px;
   grid-row: auto;
@@ -1821,7 +1830,7 @@ h2 {
 
 .deal-menu {
   position: absolute;
-  z-index: 42;
+  z-index: 90;
   top: calc(100% + 7px);
   left: 0;
   width: min(370px, calc(100vw - 28px));
@@ -1832,6 +1841,19 @@ h2 {
   padding: 10px;
   background: linear-gradient(180deg, #fff4fa, #fff);
   box-shadow: 0 22px 46px rgba(128, 24, 78, 0.2);
+}
+
+@media (max-width: 720px) {
+  .store-panel .product-card.featured-product .deal-menu {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    max-height: min(72vh, 430px);
+    overflow: auto;
+  }
 }
 
 .deal-menu[hidden] {
