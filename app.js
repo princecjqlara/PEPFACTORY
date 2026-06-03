@@ -216,6 +216,16 @@ const tiers = [
   { label: "16+ buyers", min: 16, max: Infinity, price: 1499 },
 ];
 
+const weekdayOptions = [
+  { value: 0, short: "Sun", label: "Sunday" },
+  { value: 1, short: "Mon", label: "Monday" },
+  { value: 2, short: "Tue", label: "Tuesday" },
+  { value: 3, short: "Wed", label: "Wednesday" },
+  { value: 4, short: "Thu", label: "Thursday" },
+  { value: 5, short: "Fri", label: "Friday" },
+  { value: 6, short: "Sat", label: "Saturday" },
+];
+
 const reactionTypes = [
   { key: "like", label: "Like", emoji: "👍" },
   { key: "love", label: "Love", emoji: "💗" },
@@ -472,12 +482,14 @@ const els = {
   adminProductOriginalPriceInput: document.querySelector("#adminProductOriginalPriceInput"),
   adminProductSalePriceInput: document.querySelector("#adminProductSalePriceInput"),
   adminProductWholesaleInput: document.querySelector("#adminProductWholesaleInput"),
+  adminProductVariantsInput: document.querySelector("#adminProductVariantsInput"),
   adminProductSaleEnabledInput: document.querySelector("#adminProductSaleEnabledInput"),
   adminProductSaleEndsInput: document.querySelector("#adminProductSaleEndsInput"),
   adminProductStockInput: document.querySelector("#adminProductStockInput"),
   adminProductOutOfStockInput: document.querySelector("#adminProductOutOfStockInput"),
   adminProductPreorderInput: document.querySelector("#adminProductPreorderInput"),
   adminProductBulkBuyAtInput: document.querySelector("#adminProductBulkBuyAtInput"),
+  adminProductBulkBuyRepeatTimeInput: document.querySelector("#adminProductBulkBuyRepeatTimeInput"),
   adminProductAvailableAtInput: document.querySelector("#adminProductAvailableAtInput"),
   adminProductImageUrlInput: document.querySelector("#adminProductImageUrlInput"),
   adminProductImageInput: document.querySelector("#adminProductImageInput"),
@@ -534,6 +546,7 @@ const els = {
   adminPreorderStockInput: document.querySelector("#adminPreorderStockInput"),
   adminPreorderEndsAtInput: document.querySelector("#adminPreorderEndsAtInput"),
   adminPreorderBulkBuyAtInput: document.querySelector("#adminPreorderBulkBuyAtInput"),
+  adminPreorderBulkBuyRepeatTimeInput: document.querySelector("#adminPreorderBulkBuyRepeatTimeInput"),
   adminPreorderAvailableAtInput: document.querySelector("#adminPreorderAvailableAtInput"),
   adminSavePreorderBtn: document.querySelector("#adminSavePreorderBtn"),
   adminClosePreorderBtn: document.querySelector("#adminClosePreorderBtn"),
@@ -728,6 +741,19 @@ function normalizeState(nextState) {
     nextState.products = seedDemoCatalog(nextState.products);
     nextState.demoCatalogSeeded = true;
   }
+  nextState.cart =
+    nextState.cart && typeof nextState.cart === "object"
+      ? Object.fromEntries(
+          Object.entries(nextState.cart)
+            .map(([cartKey, qty]) => [String(cartKey), clampNumber(qty, 1, 999, 1)])
+            .filter(([cartKey]) => {
+              const { productId, variantId } = parseCartKey(cartKey);
+              const product = nextState.products.find((item) => item.id === productId);
+              if (!product) return false;
+              return !variantId || Boolean(getProductVariant(product, variantId, { fallback: false }));
+            }),
+        )
+      : {};
   nextState.productCategories = Array.isArray(nextState.productCategories) ? nextState.productCategories.filter(Boolean) : [];
   const categories = getStoreCategories(nextState.products, nextState.productCategories);
   nextState.storeCategory = categories.includes(nextState.storeCategory) ? nextState.storeCategory : "All";
@@ -824,6 +850,8 @@ function normalizeProduct(product, index = 0) {
   const preorderEndsAt = product.preorderEndsAt ? Number(product.preorderEndsAt) : null;
   const bulkBuyAt = product.bulkBuyAt ? Number(product.bulkBuyAt) : null;
   const availableAt = product.availableAt ? Number(product.availableAt) : null;
+  const bulkBuyRepeatDays = normalizeWeekdayList(product.bulkBuyRepeatDays ?? product.bulkBuyDays ?? product.repeatDays);
+  const bulkBuyRepeatTime = normalizeTimeValue(product.bulkBuyRepeatTime ?? product.bulkBuyTime ?? product.repeatTime);
   return {
     id: product.id || `product-${Date.now()}-${index}`,
     name: product.name || "Untitled product",
@@ -833,6 +861,7 @@ function normalizeProduct(product, index = 0) {
     originalPrice,
     salePrice,
     wholesaleTiers: normalizeWholesaleTiers(product.wholesaleTiers, originalPrice),
+    variants: normalizeProductVariants(product.variants, { originalPrice, salePrice, wholesaleTiers: product.wholesaleTiers }),
     featured: Boolean(product.featured || product.highlighted || product.big),
     sortOrder: clampNumber(product.sortOrder ?? product.menuOrder ?? product.order, 1, 999, index + 1),
     saleEnabled: Boolean(product.saleEnabled),
@@ -844,12 +873,42 @@ function normalizeProduct(product, index = 0) {
     preorderStock: Math.max(0, Number(product.preorderStock) || 0),
     preorderEndsAt: Number.isFinite(preorderEndsAt) ? preorderEndsAt : null,
     bulkBuyAt: Number.isFinite(bulkBuyAt) ? bulkBuyAt : null,
+    bulkBuyRepeatDays,
+    bulkBuyRepeatTime,
     availableAt: Number.isFinite(availableAt) ? availableAt : null,
     banner: product.banner || "New",
     poolTarget: Math.max(1, Number(product.poolTarget) || 1),
     poolJoined: Math.max(0, Number(product.poolJoined) || 0),
     image: product.image || "assets/deti-storefront.png",
   };
+}
+
+function normalizeProductVariants(variants, product = {}) {
+  const entries = Array.isArray(variants) ? variants : [];
+  const normalized = entries
+    .map((variant, index) => {
+      const label = String(variant.label ?? variant.size ?? variant.name ?? "").trim();
+      if (!label) return null;
+      const originalPrice = Math.max(0, Math.round(Number(variant.originalPrice ?? variant.price ?? variant.basePrice ?? product.originalPrice) || 0));
+      const salePrice = Math.max(0, Math.round(Number(variant.salePrice) || 0));
+      const preorderPrice = Math.max(0, Math.round(Number(variant.preorderPrice ?? variant.bulkPrice) || 0));
+      const id = String(variant.id || slugifyProductId(label) || `size-${index + 1}`).slice(0, 54);
+      return {
+        id,
+        label,
+        originalPrice,
+        salePrice,
+        preorderPrice,
+        wholesaleTiers: normalizeWholesaleTiers(variant.wholesaleTiers, originalPrice),
+      };
+    })
+    .filter((variant) => variant && variant.originalPrice > 0);
+  const byId = new Map();
+  normalized.forEach((variant) => {
+    const key = variant.id || slugifyProductId(variant.label);
+    if (!byId.has(key)) byId.set(key, { ...variant, id: key });
+  });
+  return [...byId.values()];
 }
 
 function seedDemoCatalog(products = []) {
@@ -872,32 +931,74 @@ function seedDemoCatalog(products = []) {
   }));
 }
 
+function getWholesaleDiscountPercent(tier) {
+  const raw = tier?.discountPercent ?? tier?.percent ?? tier?.discount ?? tier?.discountRate;
+  const value = Number(raw);
+  if (!Number.isFinite(value)) return 0;
+  return clampNumber(value, 0, 99, 0);
+}
+
+function getWholesaleUnitPrice(tier, basePrice = 0) {
+  const price = Math.max(0, Math.round(Number(tier?.unitPrice ?? tier?.price) || 0));
+  const discountPercent = getWholesaleDiscountPercent(tier);
+  const base = Math.max(0, Math.round(Number(basePrice) || 0));
+  if (discountPercent > 0 && base > 0) {
+    return Math.max(0, Math.round(base * (1 - discountPercent / 100)));
+  }
+  return price;
+}
+
 function normalizeWholesaleTiers(tiers, fallbackPrice = 0) {
   const entries = Array.isArray(tiers) ? tiers : [];
   const normalized = entries
-    .map((tier) => ({
-      minQty: Math.max(2, Math.round(Number(tier.minQty ?? tier.qty ?? tier.quantity) || 0)),
-      unitPrice: Math.max(0, Math.round(Number(tier.unitPrice ?? tier.price) || 0)),
-    }))
-    .filter((tier) => tier.minQty >= 2 && tier.unitPrice > 0 && (!fallbackPrice || tier.unitPrice < fallbackPrice))
-    .sort((a, b) => a.minQty - b.minQty || a.unitPrice - b.unitPrice);
+    .map((tier) => {
+      const discountPercent = getWholesaleDiscountPercent(tier);
+      const unitPrice = getWholesaleUnitPrice(tier, fallbackPrice);
+      return {
+        minQty: Math.max(2, Math.round(Number(tier.minQty ?? tier.qty ?? tier.quantity) || 0)),
+        unitPrice,
+        discountPercent,
+      };
+    })
+    .filter((tier) => {
+      const hasDiscount = tier.discountPercent > 0;
+      const hasPrice = tier.unitPrice > 0;
+      return tier.minQty >= 2 && (hasDiscount || hasPrice) && (!fallbackPrice || !hasPrice || tier.unitPrice < fallbackPrice);
+    })
+    .sort((a, b) => a.minQty - b.minQty || getWholesaleSortPrice(a, fallbackPrice) - getWholesaleSortPrice(b, fallbackPrice));
   const byQty = new Map();
   normalized.forEach((tier) => {
     const current = byQty.get(tier.minQty);
-    byQty.set(tier.minQty, current ? { ...tier, unitPrice: Math.min(current.unitPrice, tier.unitPrice) } : tier);
+    if (!current || getWholesaleSortPrice(tier, fallbackPrice) < getWholesaleSortPrice(current, fallbackPrice)) {
+      byQty.set(tier.minQty, tier);
+    }
   });
   return [...byQty.values()];
+}
+
+function getWholesaleSortPrice(tier, fallbackPrice = 0) {
+  return getWholesaleUnitPrice(tier, fallbackPrice) || Number.MAX_SAFE_INTEGER;
 }
 
 function parseWholesaleTiers(value, basePrice = 0) {
   const tiers = String(value || "")
     .split(/\r?\n|,/)
     .map((line) => {
-      const match = line.trim().match(/^(\d+)\s*(?:pcs?|pieces?|x)?\s*(?:=|:|-|for|@)?\s*(?:php)?\s*(\d+)$/i);
+      const match = line.trim().match(/^(\d+)\s*(?:pcs?|pieces?|x)?\s*(?:=|:|-|for|@)?\s*(.+)$/i);
       if (!match) return null;
+      const valueText = match[2].trim();
+      const percentMatch = valueText.match(/(\d+(?:\.\d+)?)\s*(?:%|percent)\s*(?:off|discount)?/i);
+      if (percentMatch) {
+        return {
+          minQty: Number(match[1]),
+          discountPercent: Number(percentMatch[1]),
+        };
+      }
+      const priceMatch = valueText.match(/^(?:php|p|₱)?\s*(\d+)$/i);
+      if (!priceMatch) return null;
       return {
         minQty: Number(match[1]),
-        unitPrice: Number(match[2]),
+        unitPrice: Number(priceMatch[1]),
       };
     })
     .filter(Boolean);
@@ -906,52 +1007,183 @@ function parseWholesaleTiers(value, basePrice = 0) {
 
 function formatWholesaleTiers(tiers = []) {
   return normalizeWholesaleTiers(tiers)
-    .map((tier) => `${tier.minQty}=${tier.unitPrice}`)
+    .map((tier) => `${tier.minQty}=${formatWholesaleTierValue(tier)}`)
     .join("\n");
 }
 
-function isProductSaleActive(product, now = Date.now()) {
-  if (!product.saleEnabled || !product.salePrice) return false;
-  if (product.saleEndsAt && product.saleEndsAt <= now) return false;
-  return product.salePrice < product.originalPrice;
+function formatWholesaleInline(tiers = []) {
+  return normalizeWholesaleTiers(tiers)
+    .map((tier) => `${tier.minQty}=${formatWholesaleTierValue(tier)}`)
+    .join(", ");
 }
 
-function getProductDisplayPrice(product) {
-  return isProductSaleActive(product) ? product.salePrice : product.originalPrice;
+function formatWholesaleTierValue(tier) {
+  return tier.discountPercent > 0 ? `${formatPercent(tier.discountPercent)}%` : String(tier.unitPrice);
+}
+
+function formatPercent(value) {
+  const amount = Number(value) || 0;
+  return Number.isInteger(amount) ? String(amount) : amount.toFixed(1).replace(/\.0$/, "");
+}
+
+function parseProductVariants(value) {
+  return normalizeProductVariants(
+    String(value || "")
+      .split(/\r?\n/)
+      .map((line) => parseProductVariantLine(line))
+      .filter(Boolean),
+  );
+}
+
+function parseProductVariantLine(line) {
+  const parts = String(line || "")
+    .split("|")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!parts.length) return null;
+
+  let label = "";
+  let originalPrice = 0;
+  const firstMatch = parts[0].match(/^(.+?)\s*(?:=|:)\s*(?:php)?\s*(\d+)$/i);
+  if (firstMatch) {
+    label = firstMatch[1].trim();
+    originalPrice = Number(firstMatch[2]);
+  } else {
+    label = parts[0].trim();
+    originalPrice = Number((parts[1] || "").match(/\d+/)?.[0] || 0);
+    if (originalPrice) parts.splice(1, 1);
+  }
+
+  if (!label || !originalPrice) return null;
+
+  const variant = { label, originalPrice, salePrice: 0, preorderPrice: 0, wholesaleTiers: [] };
+  parts.slice(1).forEach((part) => {
+    const normalized = part.replace(/php/gi, "").trim();
+    const price = Number(normalized.match(/\d+/)?.[0] || 0);
+    if (/wholesale|tier/i.test(normalized)) {
+      variant.wholesaleTiers = parseWholesaleTiers(normalized.replace(/wholesale|tiers?/gi, ""), originalPrice);
+      return;
+    }
+    if (/preorder|bulk/i.test(normalized)) {
+      variant.preorderPrice = price;
+      return;
+    }
+    if (/\bsale\b/i.test(normalized)) {
+      variant.salePrice = price;
+      return;
+    }
+    const wholesaleTiers = parseWholesaleTiers(normalized, originalPrice);
+    if (wholesaleTiers.length) {
+      variant.wholesaleTiers = wholesaleTiers;
+    } else if (!variant.salePrice && price) {
+      variant.salePrice = price;
+    }
+  });
+  return variant;
+}
+
+function formatProductVariants(variants = []) {
+  return normalizeProductVariants(variants)
+    .map((variant) => {
+      const parts = [`${variant.label} = ${variant.originalPrice}`];
+      if (variant.salePrice) parts.push(`sale ${variant.salePrice}`);
+      if (variant.preorderPrice) parts.push(`preorder ${variant.preorderPrice}`);
+      if (variant.wholesaleTiers.length) parts.push(`wholesale ${formatWholesaleInline(variant.wholesaleTiers)}`);
+      return parts.join(" | ");
+    })
+    .join("\n");
+}
+
+function getProductVariants(product) {
+  return normalizeProductVariants(product?.variants);
+}
+
+function getDefaultProductVariant(product) {
+  return getProductVariants(product)[0] || null;
+}
+
+function getProductVariant(product, variantId, options = {}) {
+  const variants = getProductVariants(product);
+  const found = variants.find((variant) => variant.id === variantId);
+  return found || (options.fallback === false ? null : variants[0] || null);
+}
+
+function getVariantOriginalPrice(product, variant = null) {
+  return variant?.originalPrice > 0 ? variant.originalPrice : product.originalPrice;
+}
+
+function getVariantSalePrice(product, variant = null) {
+  return variant ? variant.salePrice || 0 : product.salePrice;
+}
+
+function getVariantPreorderPrice(product, variant = null) {
+  return variant ? variant.preorderPrice || 0 : product.preorderPrice;
+}
+
+function getVariantWholesaleTiers(product, variant = null) {
+  return variant ? variant.wholesaleTiers : product.wholesaleTiers;
+}
+
+function getVariantLabel(variant = null) {
+  return variant?.label ? ` / ${variant.label}` : "";
+}
+
+function getCartItemName(product, variant = null) {
+  return `${product.name}${getVariantLabel(variant)}`;
+}
+
+function isProductSaleActive(product, now = Date.now(), variant = null) {
+  const originalPrice = getVariantOriginalPrice(product, variant);
+  const salePrice = getVariantSalePrice(product, variant);
+  if (!product.saleEnabled || !salePrice) return false;
+  if (product.saleEndsAt && product.saleEndsAt <= now) return false;
+  return salePrice < originalPrice;
+}
+
+function getProductDisplayPrice(product, variant = null) {
+  return isProductSaleActive(product, Date.now(), variant) ? getVariantSalePrice(product, variant) : getVariantOriginalPrice(product, variant);
 }
 
 function isPreorderEnded(product, now = Date.now()) {
   return Boolean(product.preorderEnabled && product.preorderEndsAt && product.preorderEndsAt <= now);
 }
 
-function getPreorderPrice(product) {
-  if (!product.preorderEnabled) return getProductDisplayPrice(product);
-  return product.preorderPrice > 0 ? product.preorderPrice : getProductDisplayPrice(product);
+function getPreorderPrice(product, variant = null) {
+  if (!product.preorderEnabled) return getProductDisplayPrice(product, variant);
+  const preorderPrice = getVariantPreorderPrice(product, variant);
+  return preorderPrice > 0 ? preorderPrice : getProductDisplayPrice(product, variant);
 }
 
-function getWholesaleTier(product, qty = 1) {
+function getWholesaleTier(product, qty = 1, variant = null) {
   if (product.preorderEnabled) return null;
   const count = Math.max(1, Math.round(Number(qty) || 1));
-  return normalizeWholesaleTiers(product.wholesaleTiers, getProductDisplayPrice(product))
+  return normalizeWholesaleTiers(getVariantWholesaleTiers(product, variant), getProductDisplayPrice(product, variant))
     .filter((tier) => count >= tier.minQty)
     .at(-1) || null;
 }
 
-function getProductEffectivePrice(product, qty = 1) {
-  const basePrice = product.preorderEnabled ? getPreorderPrice(product) : getProductDisplayPrice(product);
-  const wholesaleTier = getWholesaleTier(product, qty);
+function getProductEffectivePrice(product, qty = 1, variant = null) {
+  const basePrice = product.preorderEnabled ? getPreorderPrice(product, variant) : getProductDisplayPrice(product, variant);
+  const wholesaleTier = getWholesaleTier(product, qty, variant);
   return wholesaleTier ? Math.min(basePrice, wholesaleTier.unitPrice) : basePrice;
 }
 
-function getWholesaleSummary(product) {
-  const tiers = normalizeWholesaleTiers(product.wholesaleTiers, getProductDisplayPrice(product));
+function getWholesaleSummary(product, variant = null) {
+  const tiers = normalizeWholesaleTiers(getVariantWholesaleTiers(product, variant), getProductDisplayPrice(product, variant));
   if (!tiers.length) return "";
-  return tiers.map((tier) => `${tier.minQty}+ pcs ${formatMoney(tier.unitPrice)} each`).join(" / ");
+  return tiers.map((tier) => `${tier.minQty}+ pcs ${formatWholesaleTierLabel(tier)}`).join(" / ");
 }
 
-function getNextWholesaleTier(product, qty = 1) {
+function getNextWholesaleTier(product, qty = 1, variant = null) {
   const count = Math.max(1, Math.round(Number(qty) || 1));
-  return normalizeWholesaleTiers(product.wholesaleTiers, getProductDisplayPrice(product)).find((tier) => count < tier.minQty) || null;
+  return normalizeWholesaleTiers(getVariantWholesaleTiers(product, variant), getProductDisplayPrice(product, variant)).find((tier) => count < tier.minQty) || null;
+}
+
+function formatWholesaleTierLabel(tier) {
+  if (tier.discountPercent > 0) {
+    return `${formatPercent(tier.discountPercent)}% off (${formatMoney(tier.unitPrice)} each)`;
+  }
+  return `${formatMoney(tier.unitPrice)} each`;
 }
 
 function getSaleTimeLeft(product) {
@@ -981,14 +1213,58 @@ function getPreorderStockLabel(product) {
 function renderPreorderSummary(product, options = {}) {
   const ended = isPreorderEnded(product);
   const status = ended ? "Ended" : product.preorderEndsAt ? getPreorderCountdown(product) : "Open";
+  const bulkBuy = getBulkBuyShortLabel(product);
   const incoming = product.availableAt ? getAvailabilityLabel(product) : "Incoming pending";
   return `
     <div class="preorder-summary ${options.compact ? "compact" : ""}">
       <span><b>Preorder</b>${escapeHtml(status)}</span>
+      <span><b>Deadline</b>${escapeHtml(bulkBuy)}</span>
       <span><b>Slots</b>${escapeHtml(product.preorderStock > 0 ? String(product.preorderStock) : "Not set")}</span>
       <span><b>Incoming</b>${escapeHtml(incoming.replace(/^Estimated incoming\s*/, ""))}</span>
     </div>
   `;
+}
+
+function renderVariantSelect(product) {
+  const variants = getProductVariants(product);
+  if (!variants.length) return "";
+  return `
+    <label class="variant-picker">
+      <span>Size</span>
+      <select data-size-select="${escapeHtml(product.id)}">
+        ${variants.map((variant) => `<option value="${escapeHtml(variant.id)}">${escapeHtml(variant.label)}</option>`).join("")}
+      </select>
+    </label>
+  `;
+}
+
+function renderProductPrice(product, variant = null, label = "Current price") {
+  const price = getProductEffectivePrice(product, 1, variant);
+  const originalPrice = getVariantOriginalPrice(product, variant);
+  return `
+    <span>${escapeHtml(label)}</span>
+    <div>
+      <strong>${formatMoney(price)}</strong>
+      ${originalPrice > price ? `<s>${formatMoney(originalPrice)}</s>` : ""}
+    </div>
+  `;
+}
+
+function updateVariantCardPricing(select) {
+  const product = getProducts().find((item) => item.id === select?.dataset.sizeSelect);
+  if (!product) return;
+  const variant = getProductVariant(product, select.value);
+  const card = select.closest(".product-card");
+  const price = card?.querySelector(`[data-price-for="${CSS.escape(product.id)}"]`);
+  const wholesale = card?.querySelector(`[data-wholesale-for="${CSS.escape(product.id)}"]`);
+  if (price) {
+    price.innerHTML = renderProductPrice(product, variant, product.preorderEnabled ? "Preorder price" : "Current price");
+  }
+  if (wholesale) {
+    const summary = getWholesaleSummary(product, variant);
+    wholesale.textContent = summary;
+    wholesale.hidden = !summary;
+  }
 }
 
 function formatScheduleDate(value) {
@@ -1008,10 +1284,38 @@ function getScheduledProductValue(item, key) {
   return Number.isFinite(directValue) ? directValue : null;
 }
 
+function getScheduledProductArray(item, key) {
+  const product = item?.productId ? getProducts().find((entry) => entry.id === item.productId) : null;
+  const productValue = normalizeWeekdayList(product?.[key]);
+  if (productValue.length) return productValue;
+  return normalizeWeekdayList(item?.[key]);
+}
+
+function getScheduledProductText(item, key) {
+  const product = item?.productId ? getProducts().find((entry) => entry.id === item.productId) : null;
+  return normalizeTimeValue(product?.[key]) || normalizeTimeValue(item?.[key]);
+}
+
 function getBulkBuyLabel(product) {
+  const repeatDays = getScheduledProductArray(product, "bulkBuyRepeatDays");
+  if (repeatDays.length) {
+    const repeatTime = getScheduledProductText(product, "bulkBuyRepeatTime") || "00:00";
+    const nextBulkBuyAt = getNextWeeklyTimestamp(repeatDays, repeatTime);
+    return `Bulk buy deadline every ${formatWeekdayList(repeatDays)} at ${formatTimeLabel(repeatTime)} / next deadline ${formatScheduleDate(nextBulkBuyAt)}`;
+  }
   const bulkBuyAt = getScheduledProductValue(product, "bulkBuyAt");
-  if (!bulkBuyAt) return "Preorder (Bulk Buy) date pending";
-  return `Preorder (Bulk Buy) ${formatScheduleDate(bulkBuyAt)}`;
+  if (!bulkBuyAt) return "Bulk buy deadline pending";
+  return `Bulk buy deadline ${formatScheduleDate(bulkBuyAt)}`;
+}
+
+function getBulkBuyShortLabel(product) {
+  const repeatDays = getScheduledProductArray(product, "bulkBuyRepeatDays");
+  if (repeatDays.length) {
+    const repeatTime = getScheduledProductText(product, "bulkBuyRepeatTime") || "00:00";
+    return `Every ${formatWeekdayList(repeatDays)} ${formatTimeLabel(repeatTime)}`;
+  }
+  const bulkBuyAt = getScheduledProductValue(product, "bulkBuyAt");
+  return bulkBuyAt ? formatScheduleDate(bulkBuyAt) : "Pending";
 }
 
 function getAvailabilityLabel(product) {
@@ -1032,6 +1336,66 @@ function parseDateTimeLocal(value) {
   if (!value) return null;
   const timestamp = new Date(value).getTime();
   return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function normalizeWeekdayList(value) {
+  const dayMap = new Map(weekdayOptions.flatMap((day) => [[day.short.toLowerCase(), day.value], [day.label.toLowerCase(), day.value], [String(day.value), day.value]]));
+  const entries = Array.isArray(value) ? value : String(value || "").split(/[\s,|/]+/);
+  const days = entries
+    .map((entry) => {
+      const key = String(entry).trim().toLowerCase();
+      if (!key) return null;
+      return dayMap.has(key) ? dayMap.get(key) : Number(entry);
+    })
+    .filter((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 6);
+  return [...new Set(days)].sort((a, b) => a - b);
+}
+
+function normalizeTimeValue(value) {
+  const match = String(value || "").trim().match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return "";
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+}
+
+function getNextWeeklyTimestamp(days, timeValue, from = Date.now()) {
+  const repeatDays = normalizeWeekdayList(days);
+  const repeatTime = normalizeTimeValue(timeValue) || "00:00";
+  if (!repeatDays.length) return null;
+  const [hours, minutes] = repeatTime.split(":").map(Number);
+  const now = new Date(from);
+  const candidates = repeatDays.map((day) => {
+    const candidate = new Date(now);
+    candidate.setHours(hours, minutes, 0, 0);
+    const dayOffset = (day - now.getDay() + 7) % 7;
+    candidate.setDate(now.getDate() + dayOffset);
+    if (candidate.getTime() <= now.getTime()) candidate.setDate(candidate.getDate() + 7);
+    return candidate.getTime();
+  });
+  return Math.min(...candidates);
+}
+
+function formatWeekdayList(days) {
+  const repeatDays = normalizeWeekdayList(days);
+  if (repeatDays.length === 7) return "day";
+  return repeatDays.map((day) => weekdayOptions.find((option) => option.value === day)?.short).filter(Boolean).join("/");
+}
+
+function formatTimeLabel(value) {
+  const normalized = normalizeTimeValue(value);
+  if (!normalized) return "12:00 AM";
+  const [hours, minutes] = normalized.split(":").map(Number);
+  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function getSelectedWeekdays(group) {
+  return [...document.querySelectorAll(`[data-weekday-group="${group}"] input[type="checkbox"]:checked`)].map((input) => Number(input.value));
+}
+
+function setSelectedWeekdays(group, days = []) {
+  const selected = new Set(normalizeWeekdayList(days));
+  document.querySelectorAll(`[data-weekday-group="${group}"] input[type="checkbox"]`).forEach((input) => {
+    input.checked = selected.has(Number(input.value));
+  });
 }
 
 function getProducts(source = state.products) {
@@ -1236,15 +1600,41 @@ function getTier(count = state.buyerCount) {
   return tiers.find((tier) => count >= tier.min && count <= tier.max) || tiers[0];
 }
 
+function makeCartKey(productId, variantId = "") {
+  return variantId ? `${productId}::${variantId}` : productId;
+}
+
+function parseCartKey(cartKey) {
+  const [productId, ...variantParts] = String(cartKey || "").split("::");
+  return {
+    productId,
+    variantId: variantParts.join("::"),
+  };
+}
+
+function getCartLine(cartKey) {
+  const { productId, variantId } = parseCartKey(cartKey);
+  const product = getProducts().find((item) => item.id === productId);
+  if (!product) return null;
+  const variant = variantId ? getProductVariant(product, variantId, { fallback: false }) : null;
+  return { key: cartKey, productId, variantId: variant?.id || "", product, variant };
+}
+
+function getSelectedProductVariantId(control) {
+  const card = control?.closest(".product-card, .cart-suggestion, .upsell-card");
+  const productId = control?.dataset.add || control?.dataset.openPreorder || "";
+  return card?.querySelector(`[data-size-select="${CSS.escape(productId)}"]`)?.value || "";
+}
+
 function getCartUnits() {
   return Object.values(state.cart).reduce((sum, qty) => sum + qty, 0);
 }
 
 function getCartTotal() {
-  return Object.entries(state.cart).reduce((sum, [productId, qty]) => {
-    const product = getProducts().find((item) => item.id === productId);
-    if (!product) return sum;
-    return sum + getProductEffectivePrice(product, qty) * qty;
+  return Object.entries(state.cart).reduce((sum, [cartKey, qty]) => {
+    const line = getCartLine(cartKey);
+    if (!line) return sum;
+    return sum + getProductEffectivePrice(line.product, qty, line.variant) * qty;
   }, 0);
 }
 
@@ -1254,20 +1644,23 @@ function getCartItemCount() {
 
 function getCartSuggestions() {
   const suggestions = [];
-  const cartProductIds = new Set(Object.keys(state.cart));
+  const cartProductIds = new Set(Object.keys(state.cart).map((cartKey) => parseCartKey(cartKey).productId));
 
-  Object.entries(state.cart).forEach(([productId, qty]) => {
-    const product = getProducts().find((item) => item.id === productId);
+  Object.entries(state.cart).forEach(([cartKey, qty]) => {
+    const line = getCartLine(cartKey);
+    const product = line?.product;
     if (!product || product.preorderEnabled) return;
-    const nextTier = getNextWholesaleTier(product, qty);
+    const nextTier = getNextWholesaleTier(product, qty, line.variant);
     if (!nextTier) return;
     const addQty = nextTier.minQty - qty;
     suggestions.push({
       type: "wholesale",
       product,
+      variant: line.variant,
+      variantId: line.variantId,
       addQty,
-      title: `Add ${addQty} more ${addQty === 1 ? "pc" : "pcs"} of ${product.name}`,
-      detail: `Unlock ${formatMoney(nextTier.unitPrice)} each wholesale pricing.`,
+      title: `Add ${addQty} more ${addQty === 1 ? "pc" : "pcs"} of ${getCartItemName(product, line.variant)}`,
+      detail: `Unlock ${formatWholesaleTierLabel(nextTier)} wholesale pricing.`,
       action: `Add ${addQty}`,
     });
   });
@@ -1280,9 +1673,11 @@ function getCartSuggestions() {
     .map((product) => ({
       type: "addon",
       product,
+      variant: getDefaultProductVariant(product),
+      variantId: getDefaultProductVariant(product)?.id || "",
       addQty: 1,
       title: product.name,
-      detail: `${formatMoney(getProductEffectivePrice(product))} add-on from ${product.category}.`,
+      detail: `${formatMoney(getProductEffectivePrice(product, 1, getDefaultProductVariant(product)))} add-on from ${product.category}.`,
       action: "Add",
     }));
 
@@ -1290,14 +1685,14 @@ function getCartSuggestions() {
 }
 
 function getCheckoutUpsells() {
-  const cartProductIds = new Set(Object.keys(state.cart));
+  const cartProductIds = new Set(Object.keys(state.cart).map((cartKey) => parseCartKey(cartKey).productId));
   const wholesaleTargets = getCartSuggestions().filter((suggestion) => suggestion.type === "wholesale").slice(0, 1);
   const addOns = getProducts()
     .filter((product) => !cartProductIds.has(product.id))
     .filter((product) => product.stock > 0 || product.preorderEnabled)
     .sort((a, b) => {
-      const aPrice = getProductEffectivePrice(a);
-      const bPrice = getProductEffectivePrice(b);
+      const aPrice = getProductEffectivePrice(a, 1, getDefaultProductVariant(a));
+      const bPrice = getProductEffectivePrice(b, 1, getDefaultProductVariant(b));
       if (Boolean(a.featured) !== Boolean(b.featured)) return a.featured ? -1 : 1;
       return aPrice - bPrice;
     })
@@ -1305,11 +1700,13 @@ function getCheckoutUpsells() {
     .map((product) => ({
       type: product.preorderEnabled ? "preorder" : "addon",
       product,
+      variant: getDefaultProductVariant(product),
+      variantId: getDefaultProductVariant(product)?.id || "",
       addQty: 1,
       title: product.name,
       detail: product.preorderEnabled
-        ? `${formatMoney(getProductEffectivePrice(product))} preorder add-on`
-        : `${formatMoney(getProductEffectivePrice(product))} ${getWholesaleSummary(product) || "quick add-on"}`,
+        ? `${formatMoney(getProductEffectivePrice(product, 1, getDefaultProductVariant(product)))} preorder add-on`
+        : `${formatMoney(getProductEffectivePrice(product, 1, getDefaultProductVariant(product)))} ${getWholesaleSummary(product, getDefaultProductVariant(product)) || "quick add-on"}`,
       action: "Add",
     }));
   return [...wholesaleTargets, ...addOns].slice(0, 3);
@@ -1333,7 +1730,8 @@ function getReceiptTargetRefund(receipt, activePrice) {
   if (receipt.items) {
     return receipt.items.reduce((sum, item) => {
       const product = getProducts().find((entry) => entry.id === item.productId);
-      const targetUnit = Math.min(product ? getProductDisplayPrice(product) : item.paidUnit, activePrice);
+      const variant = product ? getProductVariant(product, item.variantId, { fallback: false }) : null;
+      const targetUnit = Math.min(product ? getProductDisplayPrice(product, variant) : item.paidUnit, activePrice);
       return sum + Math.max(0, item.paidUnit - targetUnit) * item.qty;
     }, 0);
   }
@@ -1669,9 +2067,11 @@ function addToCart(productId, qty = 1, options = {}) {
     window.alert("This preorder has ended.");
     return;
   }
-  state.cart[productId] = (state.cart[productId] || 0) + qty;
+  const variant = options.variantId ? getProductVariant(product, options.variantId, { fallback: false }) : getDefaultProductVariant(product);
+  const cartKey = makeCartKey(productId, variant?.id || "");
+  state.cart[cartKey] = (state.cart[cartKey] || 0) + qty;
   state.cartOpen = options.keepCartClosed ? false : true;
-  showCartNotice(product?.name || "Item");
+  showCartNotice(getCartItemName(product, variant));
   saveUserState();
   render();
   if (options.openSharedCart) {
@@ -1692,12 +2092,12 @@ function showCartNotice(productName) {
   }, 2400);
 }
 
-function updateCart(productId, delta) {
-  const next = (state.cart[productId] || 0) + delta;
+function updateCart(cartKey, delta) {
+  const next = (state.cart[cartKey] || 0) + delta;
   if (next <= 0) {
-    delete state.cart[productId];
+    delete state.cart[cartKey];
   } else {
-    state.cart[productId] = next;
+    state.cart[cartKey] = next;
   }
   saveUserState();
   render();
@@ -2051,21 +2451,28 @@ async function checkout() {
 
   await pullCommunityState();
   const previousTierPrice = getTier().price;
-  const items = Object.entries(state.cart).map(([productId, qty]) => {
-    const product = getProducts().find((entry) => entry.id === productId);
-    return {
-      productId,
-      name: product.name,
+  const items = Object.entries(state.cart).flatMap(([cartKey, qty]) => {
+    const line = getCartLine(cartKey);
+    if (!line) return [];
+    const product = line.product;
+    const variant = line.variant;
+    return [{
+      productId: line.productId,
+      variantId: line.variantId,
+      variantLabel: variant?.label || "",
+      name: getCartItemName(product, variant),
       qty,
-      paidUnit: getProductEffectivePrice(product, qty),
-      retailUnit: getProductDisplayPrice(product),
-      wholesaleTier: getWholesaleTier(product, qty),
+      paidUnit: getProductEffectivePrice(product, qty, variant),
+      retailUnit: getProductDisplayPrice(product, variant),
+      wholesaleTier: getWholesaleTier(product, qty, variant),
       preorder: product.preorderEnabled,
       preorderEndsAt: product.preorderEndsAt,
       preorderStock: product.preorderStock,
       bulkBuyAt: product.bulkBuyAt,
+      bulkBuyRepeatDays: product.bulkBuyRepeatDays,
+      bulkBuyRepeatTime: product.bulkBuyRepeatTime,
       availableAt: product.availableAt,
-    };
+    }];
   });
   const paidTotal = items.reduce((sum, item) => sum + item.paidUnit * item.qty, 0);
   state.buyerCount += units;
@@ -2221,7 +2628,8 @@ function renderTiers() {
   els.bulkBuyList.innerHTML = preorderProducts.length
     ? preorderProducts
         .map((product) => {
-          const price = getProductEffectivePrice(product);
+          const variant = getDefaultProductVariant(product);
+          const wholesaleSummary = getWholesaleSummary(product, variant);
           const ended = isPreorderEnded(product);
           return `
             <article class="product-card bulk-buy-card ${focusedBulkBuyProductId === product.id ? "focused" : ""}" data-bulk-product="${escapeHtml(product.id)}">
@@ -2236,12 +2644,10 @@ function renderTiers() {
                 </div>
                 <p class="product-description">${escapeHtml(product.description)}</p>
                 ${renderPreorderSummary(product)}
+                ${renderVariantSelect(product)}
+                <div class="wholesale-strip" data-wholesale-for="${escapeHtml(product.id)}" ${wholesaleSummary ? "" : "hidden"}>${escapeHtml(wholesaleSummary)}</div>
               </div>
-              <div class="price">
-                <span>Preorder price</span>
-                <strong>${formatMoney(price)}</strong>
-                ${product.originalPrice > price ? `<s>${formatMoney(product.originalPrice)}</s>` : ""}
-              </div>
+              <div class="price" data-price-for="${escapeHtml(product.id)}">${renderProductPrice(product, variant, "Preorder price")}</div>
               <button class="join-button" type="button" data-add="${escapeHtml(product.id)}" ${ended ? "disabled" : ""}>Join now</button>
             </article>
           `;
@@ -2258,7 +2664,9 @@ function renderProducts() {
   const activeCategory = state.storeCategory || "All";
   const visibleProducts = products.filter((product) => {
     const matchesCategory = activeCategory === "All" || product.category === activeCategory;
-    const matchesSearch = [product.name, product.type, product.banner, product.category].some((value) => value.toLowerCase().includes(search));
+    const matchesSearch = [product.name, product.type, product.banner, product.category, ...getProductVariants(product).map((variant) => variant.label)].some((value) =>
+      value.toLowerCase().includes(search),
+    );
     return matchesCategory && matchesSearch;
   });
   els.stockChip.textContent = bulkOpenCount ? `${totalStock} in stock / ${bulkOpenCount} preorder open` : `${totalStock} in stock`;
@@ -2284,9 +2692,9 @@ function renderProducts() {
   const firstMenuProductId = visibleProducts.find((product) => !featuredProductIds.has(product.id))?.id || "";
   els.productGrid.innerHTML = visibleProducts
     .map((product) => {
-      const price = getProductEffectivePrice(product);
-      const wholesaleSummary = getWholesaleSummary(product);
-      const saleActive = isProductSaleActive(product);
+      const variant = getDefaultProductVariant(product);
+      const wholesaleSummary = getWholesaleSummary(product, variant);
+      const saleActive = isProductSaleActive(product, Date.now(), variant);
       const outOfStock = product.stock <= 0;
       const canPreorder = product.preorderEnabled;
       const isPreorder = product.preorderEnabled;
@@ -2320,15 +2728,10 @@ function renderProducts() {
                     ${saleActive && product.saleEndsAt ? `<span>Sale ${getSaleTimeLeft(product)}</span>` : ""}
                   </div>`
             }
-            ${wholesaleSummary ? `<div class="wholesale-strip">${escapeHtml(wholesaleSummary)}</div>` : ""}
+            ${renderVariantSelect(product)}
+            <div class="wholesale-strip" data-wholesale-for="${escapeHtml(product.id)}" ${wholesaleSummary ? "" : "hidden"}>${escapeHtml(wholesaleSummary)}</div>
           </div>
-          <div class="price">
-            <span>Current price</span>
-            <div>
-              <strong>${formatMoney(price)}</strong>
-              ${product.originalPrice > price ? `<s>${formatMoney(product.originalPrice)}</s>` : ""}
-            </div>
-          </div>
+          <div class="price" data-price-for="${escapeHtml(product.id)}">${renderProductPrice(product, variant, "Current price")}</div>
           <button class="add-button" type="button" ${canPreorder ? `data-open-preorder="${escapeHtml(product.id)}"` : `data-add="${escapeHtml(product.id)}"`} ${ended || (outOfStock && !canPreorder) ? "disabled" : ""}>${ended ? "Preorder ended" : preorderButtonLabel}</button>
         </article>
       `;
@@ -2361,30 +2764,30 @@ function renderCart() {
 function renderCartLineItems(options = {}) {
   const entries = Object.entries(state.cart);
   return entries
-    .filter(([productId]) => getProducts().some((item) => item.id === productId))
-    .map(([productId, qty]) => {
-      const product = getProducts().find((item) => item.id === productId);
-      const price = getProductEffectivePrice(product, qty);
-      const retailPrice = getProductDisplayPrice(product);
-      const wholesaleTier = getWholesaleTier(product, qty);
-      const nextWholesaleTier = getNextWholesaleTier(product, qty);
+    .filter(([cartKey]) => Boolean(getCartLine(cartKey)))
+    .map(([cartKey, qty]) => {
+      const { product, variant } = getCartLine(cartKey);
+      const price = getProductEffectivePrice(product, qty, variant);
+      const retailPrice = getProductDisplayPrice(product, variant);
+      const wholesaleTier = getWholesaleTier(product, qty, variant);
+      const nextWholesaleTier = getNextWholesaleTier(product, qty, variant);
       return `
         <div class="cart-row ${options.compact ? "compact" : ""}">
           <img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" loading="lazy" />
           <div>
-            <strong>${escapeHtml(product.name)}</strong>
+            <strong>${escapeHtml(getCartItemName(product, variant))}</strong>
             <span>${
               product.preorderEnabled
                 ? `Preorder (Bulk Buy) order / ${getBulkBuyLabel(product)} / ${getAvailabilityLabel(product)}`
                 : wholesaleTier
-                ? `${formatMoney(price)} each wholesale / saved ${formatMoney((retailPrice - price) * qty)}`
-                : `${formatMoney(price)} each${nextWholesaleTier ? ` / add ${nextWholesaleTier.minQty - qty} more for ${formatMoney(nextWholesaleTier.unitPrice)} each` : ""}`
+                ? `${formatMoney(price)} each wholesale${wholesaleTier.discountPercent > 0 ? ` / ${formatPercent(wholesaleTier.discountPercent)}% off` : ""} / saved ${formatMoney((retailPrice - price) * qty)}`
+                : `${formatMoney(price)} each${nextWholesaleTier ? ` / add ${nextWholesaleTier.minQty - qty} more for ${formatWholesaleTierLabel(nextWholesaleTier)}` : ""}`
             }</span>
           </div>
           <div class="qty-controls">
-            <button type="button" data-dec="${product.id}">-</button>
+            <button type="button" data-dec="${escapeHtml(cartKey)}">-</button>
             <strong>${qty}</strong>
-            <button type="button" data-inc="${product.id}">+</button>
+            <button type="button" data-inc="${escapeHtml(cartKey)}">+</button>
           </div>
         </div>
       `;
@@ -2410,7 +2813,7 @@ function renderCartSuggestions() {
                 <strong>${escapeHtml(suggestion.title)}</strong>
                 <span>${escapeHtml(suggestion.detail)}</span>
               </div>
-              <button class="ghost-button" type="button" data-add="${escapeHtml(suggestion.product.id)}" data-add-qty="${suggestion.addQty}">${escapeHtml(suggestion.action)}</button>
+              <button class="ghost-button" type="button" data-add="${escapeHtml(suggestion.product.id)}" data-variant-id="${escapeHtml(suggestion.variantId || "")}" data-add-qty="${suggestion.addQty}">${escapeHtml(suggestion.action)}</button>
             </article>
           `,
         )
@@ -2431,7 +2834,7 @@ function renderUpsellCards() {
                 <strong>${escapeHtml(suggestion.title)}</strong>
                 <span>${escapeHtml(suggestion.detail)}</span>
               </div>
-              <button class="ghost-button" type="button" data-add="${escapeHtml(suggestion.product.id)}" data-add-qty="${suggestion.addQty}">${escapeHtml(suggestion.action)}</button>
+              <button class="ghost-button" type="button" data-add="${escapeHtml(suggestion.product.id)}" data-variant-id="${escapeHtml(suggestion.variantId || "")}" data-add-qty="${suggestion.addQty}">${escapeHtml(suggestion.action)}</button>
             </article>
           `,
         )
@@ -3328,6 +3731,7 @@ function renderAdminProductList(products = getProducts()) {
             .map((product) => {
               const saleActive = isProductSaleActive(product);
               const wholesaleSummary = getWholesaleSummary(product);
+              const variantSummary = getProductVariants(product).length ? ` / ${getProductVariants(product).length} size${getProductVariants(product).length === 1 ? "" : "s"}` : "";
               return `
                 <article class="admin-product-row ${product.featured ? "featured-admin-product" : ""}">
                   <img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" loading="lazy" />
@@ -3338,8 +3742,8 @@ function renderAdminProductList(products = getProducts()) {
             }</span>
                     <small>${
                       product.preorderEnabled
-                        ? `Order ${product.sortOrder}${product.featured ? " / highlighted" : ""} / ${formatMoney(getProductDisplayPrice(product))} / ${escapeHtml(getBulkBuyLabel(product))} / ${escapeHtml(getAvailabilityLabel(product))}`
-                        : `Order ${product.sortOrder}${product.featured ? " / highlighted" : ""} / ${formatMoney(getProductDisplayPrice(product))}${saleActive ? ` sale${product.saleEndsAt ? `, ${getSaleTimeLeft(product)}` : ""}` : ""}${wholesaleSummary ? ` / ${escapeHtml(wholesaleSummary)}` : ""}`
+                        ? `Order ${product.sortOrder}${product.featured ? " / highlighted" : ""} / ${formatMoney(getProductDisplayPrice(product))}${variantSummary} / ${escapeHtml(getBulkBuyLabel(product))} / ${escapeHtml(getAvailabilityLabel(product))}`
+                        : `Order ${product.sortOrder}${product.featured ? " / highlighted" : ""} / ${formatMoney(getProductDisplayPrice(product))}${variantSummary}${saleActive ? ` sale${product.saleEndsAt ? `, ${getSaleTimeLeft(product)}` : ""}` : ""}${wholesaleSummary ? ` / ${escapeHtml(wholesaleSummary)}` : ""}`
                     }</small>
                   </div>
                   <div class="admin-row-actions">
@@ -3410,6 +3814,8 @@ function loadAdminPreorderForm(productId, options = {}) {
     els.adminPreorderStockInput.value = "0";
     els.adminPreorderEndsAtInput.value = "";
     els.adminPreorderBulkBuyAtInput.value = "";
+    els.adminPreorderBulkBuyRepeatTimeInput.value = "";
+    setSelectedWeekdays("preorderBulkBuyRepeat", []);
     els.adminPreorderAvailableAtInput.value = "";
     return;
   }
@@ -3421,6 +3827,8 @@ function loadAdminPreorderForm(productId, options = {}) {
   els.adminPreorderStockInput.value = product.preorderStock || "";
   els.adminPreorderEndsAtInput.value = formatDateTimeLocal(product.preorderEndsAt);
   els.adminPreorderBulkBuyAtInput.value = formatDateTimeLocal(product.bulkBuyAt);
+  els.adminPreorderBulkBuyRepeatTimeInput.value = product.bulkBuyRepeatTime || "";
+  setSelectedWeekdays("preorderBulkBuyRepeat", product.bulkBuyRepeatDays);
   els.adminPreorderAvailableAtInput.value = formatDateTimeLocal(product.availableAt);
   if (options.renderList !== false) renderAdminPreorderControls();
 }
@@ -3438,6 +3846,8 @@ async function saveAdminPreorderSettings({ close = false } = {}) {
   const preorderStock = close ? 0 : getAdminNumber(els.adminPreorderStockInput, 0, 0, 9999);
   const preorderEndsAt = close ? null : parseDateTimeLocal(els.adminPreorderEndsAtInput.value);
   const bulkBuyAt = close ? null : parseDateTimeLocal(els.adminPreorderBulkBuyAtInput.value);
+  const bulkBuyRepeatDays = close ? [] : getSelectedWeekdays("preorderBulkBuyRepeat");
+  const bulkBuyRepeatTime = close ? "" : normalizeTimeValue(els.adminPreorderBulkBuyRepeatTimeInput.value);
   const availableAt = close ? null : parseDateTimeLocal(els.adminPreorderAvailableAtInput.value);
   await pullCommunityState();
   const currentProduct = getProducts().find((item) => item.id === productId) || product;
@@ -3449,6 +3859,8 @@ async function saveAdminPreorderSettings({ close = false } = {}) {
     preorderStock,
     preorderEndsAt,
     bulkBuyAt,
+    bulkBuyRepeatDays,
+    bulkBuyRepeatTime,
     availableAt,
   });
 
@@ -4409,8 +4821,9 @@ function createAutomationReceipt(rule, context = {}) {
   const previousTierPrice = getTier().price;
   const product = getTrollRuleProduct(rule, context);
   if (!product) return;
+  const variant = getDefaultProductVariant(product);
   const units = clampNumber(rule.receiptUnits, 1, 20, 1);
-  const paidUnit = getProductEffectivePrice(product, units);
+  const paidUnit = getProductEffectivePrice(product, units, variant);
   state.buyerCount += units;
   state.transactionCount += 1;
   const receipt = {
@@ -4420,13 +4833,17 @@ function createAutomationReceipt(rule, context = {}) {
     items: [
       {
         productId: product.id,
-        name: product.name,
+        variantId: variant?.id || "",
+        variantLabel: variant?.label || "",
+        name: getCartItemName(product, variant),
         qty: units,
         paidUnit,
         preorder: product.preorderEnabled,
         preorderEndsAt: product.preorderEndsAt,
         preorderStock: product.preorderStock,
         bulkBuyAt: product.bulkBuyAt,
+        bulkBuyRepeatDays: product.bulkBuyRepeatDays,
+        bulkBuyRepeatTime: product.bulkBuyRepeatTime,
         availableAt: product.availableAt,
       },
     ],
@@ -4502,12 +4919,15 @@ function resetAdminProductForm() {
   els.adminProductOriginalPriceInput.value = "0";
   els.adminProductSalePriceInput.value = "0";
   els.adminProductWholesaleInput.value = "";
+  els.adminProductVariantsInput.value = "";
   els.adminProductSaleEnabledInput.checked = false;
   els.adminProductSaleEndsInput.value = "";
   els.adminProductStockInput.value = "0";
   els.adminProductOutOfStockInput.checked = false;
   els.adminProductPreorderInput.checked = false;
   els.adminProductBulkBuyAtInput.value = "";
+  els.adminProductBulkBuyRepeatTimeInput.value = "";
+  setSelectedWeekdays("productBulkBuyRepeat", []);
   els.adminProductAvailableAtInput.value = "";
   els.adminProductImageUrlInput.value = "";
   els.adminProductImageInput.value = "";
@@ -4533,12 +4953,15 @@ function loadAdminProductForm(productId) {
   els.adminProductOriginalPriceInput.value = product.originalPrice;
   els.adminProductSalePriceInput.value = product.salePrice;
   els.adminProductWholesaleInput.value = formatWholesaleTiers(product.wholesaleTiers);
+  els.adminProductVariantsInput.value = formatProductVariants(product.variants);
   els.adminProductSaleEnabledInput.checked = product.saleEnabled;
   els.adminProductSaleEndsInput.value = formatDateTimeLocal(product.saleEndsAt);
   els.adminProductStockInput.value = product.stock;
   els.adminProductOutOfStockInput.checked = product.stock <= 0;
   els.adminProductPreorderInput.checked = product.preorderEnabled;
   els.adminProductBulkBuyAtInput.value = formatDateTimeLocal(product.bulkBuyAt);
+  els.adminProductBulkBuyRepeatTimeInput.value = product.bulkBuyRepeatTime || "";
+  setSelectedWeekdays("productBulkBuyRepeat", product.bulkBuyRepeatDays);
   els.adminProductAvailableAtInput.value = formatDateTimeLocal(product.availableAt);
   els.adminProductImageUrlInput.value = product.image;
   els.adminProductImageInput.value = "";
@@ -4607,6 +5030,8 @@ async function saveAdminProduct() {
   }
   const existingProduct = products.find((item) => item.id === productId);
   const bulkBuyAt = parseDateTimeLocal(els.adminProductBulkBuyAtInput.value);
+  const bulkBuyRepeatDays = getSelectedWeekdays("productBulkBuyRepeat");
+  const bulkBuyRepeatTime = normalizeTimeValue(els.adminProductBulkBuyRepeatTimeInput.value);
   const availableAt = parseDateTimeLocal(els.adminProductAvailableAtInput.value);
   const outOfStock = els.adminProductOutOfStockInput.checked;
   const stock = outOfStock ? 0 : getAdminNumber(els.adminProductStockInput, 0, 0, 9999);
@@ -4624,11 +5049,14 @@ async function saveAdminProduct() {
     originalPrice,
     salePrice: getAdminNumber(els.adminProductSalePriceInput, 0, 0, 999999),
     wholesaleTiers: parseWholesaleTiers(els.adminProductWholesaleInput.value, originalPrice),
+    variants: parseProductVariants(els.adminProductVariantsInput.value),
     saleEnabled: els.adminProductSaleEnabledInput.checked,
     saleEndsAt: parseDateTimeLocal(els.adminProductSaleEndsInput.value),
     stock,
-    preorderEnabled: els.adminProductPreorderInput.checked || outOfStock || Boolean(bulkBuyAt || availableAt),
+    preorderEnabled: els.adminProductPreorderInput.checked || outOfStock || Boolean(bulkBuyAt || bulkBuyRepeatDays.length || availableAt),
     bulkBuyAt,
+    bulkBuyRepeatDays,
+    bulkBuyRepeatTime,
     availableAt,
     poolTarget: existingProduct?.poolTarget,
     poolJoined: existingProduct?.poolJoined,
@@ -4655,7 +5083,9 @@ async function removeAdminProduct(productId = els.adminProductSelect.value) {
 
   await pullCommunityState();
   state.products = getProducts().filter((item) => item.id !== productId);
-  delete state.cart[productId];
+  Object.keys(state.cart).forEach((cartKey) => {
+    if (parseCartKey(cartKey).productId === productId) delete state.cart[cartKey];
+  });
   addChat("System", `Admin removed product ${product.name}.`, true, {
     announcementTitle: "Product removed",
   });
@@ -5178,6 +5608,7 @@ document.addEventListener("click", (event) => {
 
   if (addId) {
     addToCart(addId, clampNumber(addButton.dataset.addQty, 1, 99, 1), {
+      variantId: addButton.dataset.variantId || getSelectedProductVariantId(addButton),
       openSharedCart: Boolean(addButton.closest('[data-view="discounts"]')),
       keepCartClosed: Boolean(addButton.closest("#checkoutOverlay")),
     });
@@ -5257,6 +5688,11 @@ document.addEventListener("click", (event) => {
   if (toggleTrollAccountButton) toggleTrollAccount(toggleTrollAccountButton.dataset.toggleTrollAccount);
   if (clearTrollUploadButton) clearTrollUpload(clearTrollUploadButton.dataset.clearTrollUpload);
   if (replyJumpButton) jumpToMessage(replyJumpButton.dataset.jumpReply);
+});
+
+document.addEventListener("change", (event) => {
+  const sizeSelect = event.target.closest("[data-size-select]");
+  if (sizeSelect) updateVariantCardPricing(sizeSelect);
 });
 
 els.checkoutBtn.addEventListener("click", openCheckoutModal);

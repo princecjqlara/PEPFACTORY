@@ -300,7 +300,11 @@
               </div>
               <label>
                 <span>Wholesale tiers</span>
-                <textarea id="adminProductWholesaleInput" maxlength="160" placeholder="3 pcs = 1800&#10;6 pcs = 1600"></textarea>
+                <textarea id="adminProductWholesaleInput" maxlength="160" placeholder="3 pcs = 10%&#10;6 pcs = 15%"></textarea>
+              </label>
+              <label>
+                <span>Milligram prices</span>
+                <textarea id="adminProductVariantsInput" maxlength="520" placeholder="5mg = 1999 | sale 1799 | preorder 1799 | wholesale 3=10%, 6=15%&#10;10mg = 3299 | preorder 2999 | wholesale 3=10%"></textarea>
               </label>
               <div class="admin-split">
                 <label class="admin-check">
@@ -324,13 +328,29 @@
               </div>
               <div class="admin-split">
                 <label>
-                  <span>Preorder (Bulk Buy) date</span>
+                  <span>Bulk buy deadline</span>
                   <input id="adminProductBulkBuyAtInput" type="datetime-local" />
                 </label>
                 <label>
                   <span>Estimated incoming</span>
                   <input id="adminProductAvailableAtInput" type="datetime-local" />
                 </label>
+              </div>
+              <div class="admin-schedule-row">
+                <label>
+                  <span>Repeat deadline time</span>
+                  <input id="adminProductBulkBuyRepeatTimeInput" type="time" />
+                </label>
+                <div class="admin-weekday-picker" data-weekday-group="productBulkBuyRepeat">
+                  <span>Repeat deadline days</span>
+                  <label><input type="checkbox" value="0" />Sun</label>
+                  <label><input type="checkbox" value="1" />Mon</label>
+                  <label><input type="checkbox" value="2" />Tue</label>
+                  <label><input type="checkbox" value="3" />Wed</label>
+                  <label><input type="checkbox" value="4" />Thu</label>
+                  <label><input type="checkbox" value="5" />Fri</label>
+                  <label><input type="checkbox" value="6" />Sat</label>
+                </div>
               </div>
               <div class="admin-split">
                 <label class="admin-check">
@@ -359,7 +379,7 @@
             <section class="admin-tool-card">
               <div class="admin-form-head">
                 <h3>Preorder (Bulk Buy)</h3>
-                <span>Control preorder availability, out-of-stock status, and incoming dates</span>
+                <span>Control preorder availability, deadline, out-of-stock status, and incoming dates</span>
               </div>
               <label>
                 <span>Product</span>
@@ -391,9 +411,25 @@
                   <input id="adminPreorderEndsAtInput" type="datetime-local" />
                 </label>
                 <label>
-                  <span>Preorder (Bulk Buy) date</span>
+                  <span>Bulk buy deadline</span>
                   <input id="adminPreorderBulkBuyAtInput" type="datetime-local" />
                 </label>
+              </div>
+              <div class="admin-schedule-row">
+                <label>
+                  <span>Repeat deadline time</span>
+                  <input id="adminPreorderBulkBuyRepeatTimeInput" type="time" />
+                </label>
+                <div class="admin-weekday-picker" data-weekday-group="preorderBulkBuyRepeat">
+                  <span>Repeat deadline days</span>
+                  <label><input type="checkbox" value="0" />Sun</label>
+                  <label><input type="checkbox" value="1" />Mon</label>
+                  <label><input type="checkbox" value="2" />Tue</label>
+                  <label><input type="checkbox" value="3" />Wed</label>
+                  <label><input type="checkbox" value="4" />Thu</label>
+                  <label><input type="checkbox" value="5" />Fri</label>
+                  <label><input type="checkbox" value="6" />Sat</label>
+                </div>
               </div>
               <div class="admin-split">
                 <label>
