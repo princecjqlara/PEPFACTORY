@@ -82,34 +82,42 @@ function mergeCommunityState(existing = {}, incoming = {}) {
 async function getAppState(key) {
   const config = getSupabaseConfig();
   if (!config.url || !config.key) return memoryStore[key] || {};
-  const response = await fetch(`${config.url}/rest/v1/app_state?key=eq.${encodeURIComponent(key)}&select=value`, {
-    headers: {
-      apikey: config.key,
-      Authorization: `Bearer ${config.key}`,
-    },
-  });
-  if (!response.ok) return memoryStore[key] || {};
-  const rows = await response.json();
-  return rows[0]?.value || memoryStore[key] || {};
+  try {
+    const response = await fetch(`${config.url}/rest/v1/app_state?key=eq.${encodeURIComponent(key)}&select=value`, {
+      headers: {
+        apikey: config.key,
+        Authorization: `Bearer ${config.key}`,
+      },
+    });
+    if (!response.ok) return memoryStore[key] || {};
+    const rows = await response.json();
+    return rows[0]?.value || memoryStore[key] || {};
+  } catch {
+    return memoryStore[key] || {};
+  }
 }
 
 async function setAppState(key, value) {
   memoryStore[key] = value;
   const config = getSupabaseConfig();
   if (!config.url || !config.key) return value;
-  const response = await fetch(`${config.url}/rest/v1/app_state`, {
-    method: "POST",
-    headers: {
-      apikey: config.key,
-      Authorization: `Bearer ${config.key}`,
-      "Content-Type": "application/json",
-      Prefer: "resolution=merge-duplicates,return=representation",
-    },
-    body: JSON.stringify([{ key, value }]),
-  });
-  if (!response.ok) return value;
-  const rows = await response.json();
-  return rows[0]?.value || value;
+  try {
+    const response = await fetch(`${config.url}/rest/v1/app_state`, {
+      method: "POST",
+      headers: {
+        apikey: config.key,
+        Authorization: `Bearer ${config.key}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      body: JSON.stringify([{ key, value }]),
+    });
+    if (!response.ok) return value;
+    const rows = await response.json();
+    return rows[0]?.value || value;
+  } catch {
+    return value;
+  }
 }
 
 module.exports = {

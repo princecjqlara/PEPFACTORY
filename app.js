@@ -285,6 +285,8 @@ let remoteSyncAvailable = false;
 let remoteSyncInFlight = false;
 let remoteSyncDisabled = false;
 let mediaUploadDisabled = false;
+let sharedCommunityReady = false;
+let sharedCommunityUnavailable = false;
 const userStateKeys = [
   "handle",
   "username",
@@ -604,11 +606,16 @@ function loadState() {
   const legacyState = readSavedState(legacyStateKey);
   const savedUserState = readSavedState(userStateKey);
   const savedCommunityState = readSavedState(communityStateKey);
+  const savedViewerState = {
+    ...pickStateKeys(legacyState, userStateKeys),
+    ...pickStateKeys(savedUserState, userStateKeys),
+  };
+  const canUseSavedCommunity = Boolean(savedViewerState.joinedCommunity || savedViewerState.username || savedViewerState.passwordHash);
 
   const nextState = {
     ...base,
-    ...pickStateKeys(legacyState, [...userStateKeys, ...communityStateKeys]),
-    ...pickStateKeys(savedCommunityState, communityStateKeys),
+    ...(canUseSavedCommunity ? pickStateKeys(legacyState, [...userStateKeys, ...communityStateKeys]) : pickStateKeys(legacyState, userStateKeys)),
+    ...(canUseSavedCommunity ? pickStateKeys(savedCommunityState, communityStateKeys) : {}),
     ...pickStateKeys(savedUserState, userStateKeys),
   };
 
@@ -1623,14 +1630,21 @@ async function requestJson(pathname, options = {}) {
 }
 
 async function pullCommunityState() {
-  if (remoteSyncDisabled) return;
+  if (remoteSyncDisabled) {
+    sharedCommunityReady = false;
+    sharedCommunityUnavailable = true;
+    return;
+  }
   try {
     const remoteCommunity = await requestJson("/api/community");
     remoteSyncAvailable = true;
+    sharedCommunityUnavailable = false;
     if (!remoteCommunity || !Object.keys(remoteCommunity).length) {
-      if (state.joinedCommunity || hasAdminCredentials()) saveCommunityState();
+      sharedCommunityReady = false;
+      if (state.joinedCommunity || hasAdminCredentials()) await saveCommunityState();
       return;
     }
+    sharedCommunityReady = true;
     const nextSnapshot = JSON.stringify(remoteCommunity);
     if (nextSnapshot === lastCommunitySnapshot) return;
     lastCommunitySnapshot = nextSnapshot;
@@ -1640,6 +1654,8 @@ async function pullCommunityState() {
   } catch (error) {
     if (error.status === 404) remoteSyncDisabled = true;
     remoteSyncAvailable = false;
+    sharedCommunityReady = false;
+    sharedCommunityUnavailable = true;
   }
 }
 
@@ -1662,9 +1678,12 @@ async function pushCommunityState() {
       localStorage.setItem(communityStateKey, JSON.stringify(pickStateKeys(state, communityStateKeys)));
     }
     remoteSyncAvailable = true;
+    sharedCommunityReady = true;
+    sharedCommunityUnavailable = false;
   } catch (error) {
     if (error.status === 404) remoteSyncDisabled = true;
     remoteSyncAvailable = false;
+    sharedCommunityUnavailable = true;
   } finally {
     if (remoteSyncInFlight === syncPromise) remoteSyncInFlight = false;
   }
@@ -2202,6 +2221,25 @@ function hasAdminCredentials() {
 
 function isAdmin() {
   return hasAdminCredentials();
+}
+
+function isGuestViewer() {
+  return !state.joinedCommunity && !hasAdminCredentials();
+}
+
+function shouldHoldGuestCommunity() {
+  return isGuestViewer() && !sharedCommunityReady;
+}
+
+function getSharedCommunityMessage(surface) {
+  if (sharedCommunityUnavailable) {
+    return surface === "chat"
+      ? "Shared group chat is unavailable right now."
+      : "Shared store is unavailable right now.";
+  }
+  return surface === "chat"
+    ? "Shared group chat is loading."
+    : "Shared store is loading. Refresh after admin saves products.";
 }
 
 function requireAdmin() {
@@ -2778,6 +2816,25 @@ function renderHero() {
 }
 
 function renderTiers() {
+  if (shouldHoldGuestCommunity()) {
+    els.tierTrack.innerHTML = `
+      <article class="preorder-stat">
+        <span>Open products</span>
+        <strong>...</strong>
+      </article>
+      <article class="preorder-stat">
+        <span>Preorder stock</span>
+        <strong>...</strong>
+      </article>
+      <article class="preorder-stat">
+        <span>Next closing</span>
+        <strong>...</strong>
+      </article>
+    `;
+    els.refundStrip.hidden = true;
+    if (els.bulkBuyList) els.bulkBuyList.innerHTML = `<div class="empty-store">${getSharedCommunityMessage("store")}</div>`;
+    return;
+  }
   const preorderProducts = getProducts().filter((product) => product.preorderEnabled);
   const totalSlots = preorderProducts.reduce((sum, product) => sum + (product.preorderStock || 0), 0);
   const endingSoon = preorderProducts
@@ -2831,6 +2888,13 @@ function renderTiers() {
 }
 
 function renderProducts() {
+  if (shouldHoldGuestCommunity()) {
+    els.stockChip.textContent = sharedCommunityUnavailable ? "Shared store unavailable" : "Shared store loading";
+    els.storeSearch.value = state.storeSearch;
+    els.categoryFilter.innerHTML = "";
+    els.productGrid.innerHTML = `<div class="empty-store">${getSharedCommunityMessage("store")}</div>`;
+    return;
+  }
   const products = getProducts();
   const totalStock = products.reduce((sum, product) => sum + product.stock, 0);
   const bulkOpenCount = products.filter((product) => product.preorderEnabled).length;
@@ -3138,6 +3202,12 @@ function renderChat(options = {}) {
   renderPinnedSystemMessage();
   renderMentionInbox();
   syncChatComposerClearance();
+  if (shouldHoldGuestCommunity()) {
+    els.chatSearchInput.value = chatSearchQuery;
+    els.chatSearchStatus.textContent = sharedCommunityUnavailable ? "Shared chat unavailable" : "Shared chat loading";
+    els.chatFeed.innerHTML = `<div class="chat-start">${getSharedCommunityMessage("chat")}</div>`;
+    return;
+  }
   const previousHeight = els.chatFeed.scrollHeight;
   const previousTop = els.chatFeed.scrollTop;
   const searchTerm = chatSearchQuery.trim().toLowerCase();
@@ -6300,8 +6370,12 @@ window.addEventListener("resize", () => {
   syncChatComposerClearance();
 });
 
-if (!localStorage.getItem(userStateKey) || !localStorage.getItem(communityStateKey)) {
-  saveState();
+if (!localStorage.getItem(userStateKey)) {
+  saveUserState();
+}
+
+if (!localStorage.getItem(communityStateKey) && (state.joinedCommunity || hasAdminCredentials())) {
+  localStorage.setItem(communityStateKey, JSON.stringify(sanitizeCommunityStateForStorage(pickStateKeys(state, communityStateKeys))));
 }
 
 ensureDefaultAdminAccount();
