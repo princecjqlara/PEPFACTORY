@@ -4147,6 +4147,11 @@ h2 {
     grid-row: auto;
   }
 
+  .store-panel .product-shot {
+    object-fit: contain;
+    background: #fff4f9;
+  }
+
   .store-panel .add-button {
     width: 100%;
   }
@@ -4255,6 +4260,7 @@ h2 {
     aspect-ratio: auto;
     min-height: 0;
     height: 108px;
+    padding: 5px;
   }
 
   .store-panel .product-card.featured-product .product-main,
@@ -4391,6 +4397,7 @@ h2 {
     min-height: 0;
     height: auto;
     aspect-ratio: 1;
+    padding: 5px;
   }
 
   .store-panel .product-card:not(.featured-product) .product-main,
