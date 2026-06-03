@@ -4213,25 +4213,26 @@ h2 {
   }
 
   .store-panel .product-card.featured-product {
-    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-columns: 1fr;
     align-items: start;
-    padding: 9px;
-    gap: 8px;
+    padding: 10px;
+    gap: 9px;
     border-radius: 7px;
   }
 
   .store-panel .product-card.featured-product .product-shot {
     grid-column: 1;
-    grid-row: 1 / span 4;
-    aspect-ratio: 1;
+    grid-row: auto;
+    aspect-ratio: auto;
     min-height: 0;
-    height: auto;
+    height: 108px;
   }
 
   .store-panel .product-card.featured-product .product-main,
   .store-panel .product-card.featured-product .price,
   .store-panel .product-card.featured-product .product-actions {
-    grid-column: 2;
+    grid-column: 1;
+    grid-row: auto;
     min-width: 0;
   }
 
@@ -4300,9 +4301,14 @@ h2 {
   }
 
   .store-panel .product-card.featured-product .deal-menu {
-    right: 0;
-    left: auto;
-    width: min(320px, calc(100vw - 24px));
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    max-height: min(72vh, 430px);
+    overflow: auto;
   }
 
   .store-panel .product-card.featured-product .wholesale-strip {
@@ -4333,6 +4339,10 @@ h2 {
     min-height: 36px;
     padding: 0 8px;
     font-size: 0.78rem;
+  }
+
+  .store-panel .product-card.featured-product .product-actions {
+    gap: 6px;
   }
 
   .store-panel .product-card.featured-product .preorder-inline-button {
