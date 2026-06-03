@@ -54,13 +54,16 @@
                   </div>
                 </div>
                 <div class="cart-popover" id="cartPopover">
-                  <div class="receipt-paper">
+                  <div class="receipt-paper cart-popup-panel">
                     <div class="section-head compact">
                       <div>
                         <p class="eyebrow">Receipt</p>
                         <h2>Anonymous Cart</h2>
                       </div>
-                      <button class="icon-button" id="clearCartBtn" type="button" aria-label="Clear cart">x</button>
+                      <div class="cart-head-actions">
+                        <button class="ghost-button" id="clearCartBtn" type="button">Clear</button>
+                        <button class="icon-button" id="closeCartBtn" type="button" aria-label="Close cart">x</button>
+                      </div>
                     </div>
                     <div class="cart-list" id="cartList"></div>
                     <div class="cart-suggestions" id="cartSuggestions"></div>
@@ -365,6 +368,14 @@
               <label>
                 <span>Upload picture</span>
                 <input id="adminProductImageInput" type="file" accept="image/*" />
+              </label>
+              <label>
+                <span>Wholesale picture URL</span>
+                <input id="adminProductWholesaleImageUrlInput" type="url" placeholder="https://..." />
+              </label>
+              <label>
+                <span>Upload wholesale picture</span>
+                <input id="adminProductWholesaleImageInput" type="file" accept="image/*" />
               </label>
               <div class="admin-actions">
                 <button class="ghost-button" id="adminNewProductBtn" type="button">New</button>

@@ -6,79 +6,40 @@ const currency = new Intl.NumberFormat("en-PH", {
 
 const defaultProducts = [
   {
-    id: "deti-core",
-    name: "DETI Core Stack",
-    category: "Core",
-    type: "Flagship",
-    description: "Daily core bundle for the main DETI stack.",
-    originalPrice: 2499,
-    salePrice: 1999,
-    wholesaleTiers: [{ minQty: 3, unitPrice: 1799 }],
+    id: "tirzepatide",
+    name: "Tirzepatide",
+    category: "Top Products",
+    type: "Standard",
+    description: "Product available in the group store.",
+    originalPrice: 1429,
+    salePrice: 949,
+    wholesaleTiers: [{ minQty: 5, unitPrice: 879 }, { minQty: 10, unitPrice: 839 }],
+    variants: [
+      { label: "5mg", originalPrice: 1429, salePrice: 949, wholesaleTiers: [{ minQty: 5, unitPrice: 879 }, { minQty: 10, unitPrice: 839 }], preorderPrice: 559, preorderWholesaleTiers: [{ minQty: 3, unitPrice: 509 }, { minQty: 6, unitPrice: 479 }] },
+      { label: "10mg", originalPrice: 1759, salePrice: 1169, wholesaleTiers: [{ minQty: 5, unitPrice: 1079 }, { minQty: 10, unitPrice: 1039 }], preorderPrice: 689, preorderWholesaleTiers: [{ minQty: 3, unitPrice: 629 }, { minQty: 6, unitPrice: 589 }] },
+      { label: "15mg", originalPrice: 2329, salePrice: 1549, wholesaleTiers: [{ minQty: 5, unitPrice: 1429 }, { minQty: 10, unitPrice: 1369 }], preorderPrice: 909, preorderWholesaleTiers: [{ minQty: 3, unitPrice: 819 }, { minQty: 6, unitPrice: 779 }] },
+      { label: "20mg", originalPrice: 2629, salePrice: 1749, wholesaleTiers: [{ minQty: 5, unitPrice: 1609 }, { minQty: 10, unitPrice: 1549 }], preorderPrice: 1029, preorderWholesaleTiers: [{ minQty: 3, unitPrice: 929 }, { minQty: 6, unitPrice: 879 }] },
+      { label: "30mg", originalPrice: 3119, salePrice: 2079, wholesaleTiers: [{ minQty: 5, unitPrice: 1919 }, { minQty: 10, unitPrice: 1839 }], preorderPrice: 1229, preorderWholesaleTiers: [{ minQty: 3, unitPrice: 1109 }, { minQty: 6, unitPrice: 1049 }] },
+      { label: "40mg", originalPrice: 3709, salePrice: 2469, wholesaleTiers: [{ minQty: 5, unitPrice: 2279 }, { minQty: 10, unitPrice: 2189 }], preorderPrice: 1459, preorderWholesaleTiers: [{ minQty: 3, unitPrice: 1319 }, { minQty: 6, unitPrice: 1249 }] },
+      { label: "50mg", originalPrice: 4399, salePrice: 2929, wholesaleTiers: [{ minQty: 5, unitPrice: 2699 }, { minQty: 10, unitPrice: 2589 }], preorderPrice: 1729, preorderWholesaleTiers: [{ minQty: 3, unitPrice: 1559 }, { minQty: 6, unitPrice: 1479 }] },
+      { label: "60mg", originalPrice: 5269, salePrice: 3509, wholesaleTiers: [{ minQty: 5, unitPrice: 3239 }, { minQty: 10, unitPrice: 3109 }], preorderPrice: 2069, preorderWholesaleTiers: [{ minQty: 3, unitPrice: 1869 }, { minQty: 6, unitPrice: 1759 }] },
+    ],
     saleEnabled: true,
-    saleEndsAt: Date.now() + 1000 * 60 * 60 * 24,
-    stock: 42,
-    preorderEnabled: false,
-    preorderPrice: 0,
-    preorderStock: 0,
+    saleEndsAt: null,
+    stock: 979,
+    preorderEnabled: true,
+    preorderPrice: 559,
+    preorderStock: 979,
     preorderEndsAt: null,
     bulkBuyAt: null,
     availableAt: null,
-    banner: "Sale",
+    banner: "Top Pick",
     featured: true,
     sortOrder: 1,
-    poolTarget: 24,
-    poolJoined: 17,
+    poolTarget: 1,
+    poolJoined: 0,
     image: "assets/deti-storefront.png",
-  },
-  {
-    id: "deti-night",
-    name: "Night Recovery Pack",
-    category: "Recovery",
-    type: "Bundle",
-    description: "Evening recovery bundle for repeat buyers.",
-    originalPrice: 2199,
-    salePrice: 0,
-    wholesaleTiers: [{ minQty: 3, unitPrice: 1999 }, { minQty: 6, unitPrice: 1799 }],
-    saleEnabled: false,
-    saleEndsAt: null,
-    stock: 31,
-    preorderEnabled: false,
-    preorderPrice: 0,
-    preorderStock: 0,
-    preorderEndsAt: null,
-    bulkBuyAt: null,
-    availableAt: null,
-    banner: "Bundle",
-    featured: false,
-    sortOrder: 3,
-    poolTarget: 18,
-    poolJoined: 9,
-    image: "assets/deti-storefront.png",
-  },
-  {
-    id: "deti-focus",
-    name: "Focus Lab Kit",
-    category: "Performance",
-    type: "Limited",
-    description: "Limited focus set for productivity sessions.",
-    originalPrice: 1899,
-    salePrice: 1499,
-    wholesaleTiers: [{ minQty: 3, unitPrice: 1399 }],
-    saleEnabled: true,
-    saleEndsAt: Date.now() + 1000 * 60 * 60 * 12,
-    stock: 26,
-    preorderEnabled: false,
-    preorderPrice: 0,
-    preorderStock: 0,
-    preorderEndsAt: null,
-    bulkBuyAt: null,
-    availableAt: null,
-    banner: "Hot",
-    featured: true,
-    sortOrder: 2,
-    poolTarget: 30,
-    poolJoined: 22,
-    image: "assets/deti-storefront.png",
+    wholesaleImage: "assets/deti-storefront.png",
   },
 ];
 
@@ -436,6 +397,7 @@ const els = {
   cartTotal: document.querySelector("#cartTotal"),
   cartCount: document.querySelector("#cartCount"),
   cartPopupBtn: document.querySelector("#cartPopupBtn"),
+  closeCartBtn: document.querySelector("#closeCartBtn"),
   preorderCartBtn: document.querySelector("#preorderCartBtn"),
   preorderCartCount: document.querySelector("#preorderCartCount"),
   cartPopover: document.querySelector("#cartPopover"),
@@ -517,6 +479,8 @@ const els = {
   adminProductAvailableAtInput: document.querySelector("#adminProductAvailableAtInput"),
   adminProductImageUrlInput: document.querySelector("#adminProductImageUrlInput"),
   adminProductImageInput: document.querySelector("#adminProductImageInput"),
+  adminProductWholesaleImageUrlInput: document.querySelector("#adminProductWholesaleImageUrlInput"),
+  adminProductWholesaleImageInput: document.querySelector("#adminProductWholesaleImageInput"),
   adminGoldenTicketToggle: document.querySelector("#adminGoldenTicketToggle"),
   adminGoldenDistanceInput: document.querySelector("#adminGoldenDistanceInput"),
   adminReceiptSearchInput: document.querySelector("#adminReceiptSearchInput"),
@@ -677,6 +641,7 @@ function isSeededProductMatch(product, seededProduct) {
     "banner",
     "featured",
     "image",
+    "wholesaleImage",
   ];
   return comparableKeys.every((key) => product?.[key] === seededProduct?.[key]) && JSON.stringify(product?.wholesaleTiers || []) === JSON.stringify(seededProduct?.wholesaleTiers || []);
 }
@@ -740,6 +705,7 @@ function sanitizeCommunityStateForStorage(communityState) {
       ? communityState.products.map((product) => ({
           ...product,
           image: getStorableProductImage(product.image),
+          wholesaleImage: product.wholesaleImage ? getStorableProductImage(product.wholesaleImage, product.image) : "",
         }))
       : communityState.products,
   };
@@ -847,10 +813,19 @@ function normalizeState(nextState) {
   nextState.memberDeletedAt = normalizeDeletedAtMap(nextState.memberDeletedAt);
   nextState.replacementDeletedAt = normalizeDeletedAtMap(nextState.replacementDeletedAt);
   nextState.trollRuleDeletedAt = normalizeDeletedAtMap(nextState.trollRuleDeletedAt);
-  nextState.products = Array.isArray(nextState.products) ? nextState.products.map(normalizeProduct) : structuredClone(defaultProducts);
+  const hasExplicitProductDeletes = Object.keys(nextState.productDeletedAt).length > 0;
+  nextState.products =
+    Array.isArray(nextState.products) && (nextState.products.length || hasExplicitProductDeletes)
+      ? nextState.products.map(normalizeProduct)
+      : structuredClone(defaultProducts).map(normalizeProduct);
   nextState.products = nextState.products
     .filter((product) => !isDeleted(product.id, nextState.productDeletedAt, product.updatedAt))
     .map((product) => withActiveProductCategory(product, nextState.productCategoryDeletedAt));
+  if (!nextState.products.length) {
+    nextState.products = structuredClone(defaultProducts)
+      .map(normalizeProduct)
+      .filter((product) => !isDeleted(product.id, nextState.productDeletedAt, product.updatedAt));
+  }
   if (!nextState.demoCatalogSeeded) {
     nextState.demoCatalogSeeded = true;
   }
@@ -1032,6 +1007,7 @@ function normalizeProduct(product, index = 0) {
     poolTarget: Math.max(1, Number(product.poolTarget) || 1),
     poolJoined: Math.max(0, Number(product.poolJoined) || 0),
     image: product.image || "assets/deti-storefront.png",
+    wholesaleImage: product.wholesaleImage || "",
     updatedAt: Math.max(0, Number(product.updatedAt) || 0),
   };
 }
@@ -1241,12 +1217,30 @@ function formatPercent(value) {
   return Number.isInteger(amount) ? String(amount) : amount.toFixed(1).replace(/\.0$/, "");
 }
 
+function getDiscountPercent(originalPrice = 0, salePrice = 0) {
+  const original = Math.max(0, Number(originalPrice) || 0);
+  const sale = Math.max(0, Number(salePrice) || 0);
+  if (!original || !sale || sale >= original) return 0;
+  return Math.round(((original - sale) / original) * 100);
+}
+
 function parseProductVariants(value) {
+  const variantLines = [];
+  String(value || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      const previousIndex = variantLines.length - 1;
+      const looksLikeTierContinuation = /^\d+\s*(?:pcs?|pieces?|x)?\s*(?:=|:|-|for|@)/i.test(line);
+      if (looksLikeTierContinuation && previousIndex >= 0 && /wholesale|tiers?/i.test(variantLines[previousIndex])) {
+        variantLines[previousIndex] = `${variantLines[previousIndex]}, ${line}`;
+        return;
+      }
+      variantLines.push(line);
+    });
   return normalizeProductVariants(
-    String(value || "")
-      .split(/\r?\n/)
-      .map((line) => parseProductVariantLine(line))
-      .filter(Boolean),
+    variantLines.map((line) => parseProductVariantLine(line)).filter(Boolean),
   );
 }
 
@@ -1448,21 +1442,47 @@ function renderWholesaleContent(product, variant = null, mode = "") {
   if (!tiers.length) return "";
   const cheapest = getCheapestWholesaleTier(product, variant, mode);
   const basePrice = getWholesaleBasePrice(product, variant, mode);
-  const label = isPreorderMode(product, mode) ? "Lowest preorder wholesale" : "Lowest wholesale";
+  const label = isPreorderMode(product, mode) ? "Preorder bundle deals" : "Bundle deals";
+  const image = product.wholesaleImage || product.image;
+  const cheapestPercent = cheapest.discountPercent || getDiscountPercent(basePrice, cheapest.unitPrice);
   return `
     <div class="wholesale-strip-head">
-      <span><b>${label}</b>${escapeHtml(formatWholesaleTierLabel(cheapest))} at ${cheapest.minQty}+ pcs</span>
-      <button type="button" data-toggle-wholesale aria-expanded="false">Menu</button>
+      <span><b>${label}</b>${cheapestPercent ? `${formatPercent(cheapestPercent)}% off / ` : ""}${escapeHtml(formatMoney(cheapest.unitPrice))} each at ${cheapest.minQty}+ pcs</span>
+      <button type="button" data-toggle-wholesale aria-expanded="false">Deals</button>
     </div>
     <div class="wholesale-tier-list" role="menu" hidden>
+      <div class="wholesale-menu-hero">
+        <img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)} bundle deal" loading="lazy" />
+        <div>
+          <b>${escapeHtml(product.name)} bundles</b>
+          <span>${escapeHtml(variant?.label || "Best value sizes")}</span>
+        </div>
+      </div>
       ${tiers
         .map((tier) => {
           const savings = formatWholesaleSavings(tier, basePrice);
-          return `<span role="menuitem"><b>${tier.minQty}+ pcs</b>${escapeHtml(formatWholesaleTierLabel(tier))}${savings ? `<small>${escapeHtml(savings)}</small>` : ""}</span>`;
+          const discountPercent = tier.discountPercent || getDiscountPercent(basePrice, tier.unitPrice);
+          return `<span role="menuitem"><b>${tier.minQty}+ pcs</b><strong>${escapeHtml(formatMoney(tier.unitPrice))} each</strong>${discountPercent ? `<em>${escapeHtml(formatPercent(discountPercent))}% off</em>` : ""}${savings ? `<small>${escapeHtml(savings)}</small>` : ""}</span>`;
         })
         .join("")}
     </div>
   `;
+}
+
+function renderDealHighlights(product, variant = null, mode = "") {
+  const originalPrice = getVariantOriginalPrice(product, variant);
+  const displayPrice = getProductDisplayPrice(product, variant);
+  const salePercent = getDiscountPercent(originalPrice, displayPrice);
+  const wholesale = getCheapestWholesaleTier(product, variant, mode);
+  const wholesalePercent = wholesale ? wholesale.discountPercent || getDiscountPercent(getWholesaleBasePrice(product, variant, mode), wholesale.unitPrice) : 0;
+  const preorderPrice = getVariantPreorderPrice(product, variant);
+  const preorderPercent = product.preorderEnabled ? getDiscountPercent(originalPrice, preorderPrice) : 0;
+  const highlights = [
+    salePercent ? `<span class="hot"><b>${formatPercent(salePercent)}% off</b>Today price</span>` : "",
+    wholesale ? `<span><b>${wholesalePercent ? `${formatPercent(wholesalePercent)}% off` : formatMoney(wholesale.unitPrice)}</b>${wholesale.minQty}+ pcs bundle</span>` : "",
+    preorderPercent ? `<span><b>${formatPercent(preorderPercent)}% off</b>Preorder</span>` : "",
+  ].filter(Boolean);
+  return highlights.length ? `<div class="deal-highlights" data-deals-for="${escapeHtml(product.id)}">${highlights.slice(0, 3).join("")}</div>` : "";
 }
 
 function getSaleTimeLeft(product) {
@@ -1507,39 +1527,69 @@ function renderPreorderSummary(product, options = {}) {
 function renderVariantSelect(product) {
   const variants = getProductVariants(product);
   if (!variants.length) return "";
+  const selected = variants[0];
   return `
     <label class="variant-picker">
       <span>Size</span>
-      <select data-size-select="${escapeHtml(product.id)}">
-        ${variants.map((variant) => `<option value="${escapeHtml(variant.id)}">${escapeHtml(variant.label)}</option>`).join("")}
-      </select>
+      <input type="hidden" data-size-select="${escapeHtml(product.id)}" value="${escapeHtml(selected.id)}" />
+      <button class="variant-menu-button" type="button" data-size-toggle="${escapeHtml(product.id)}" aria-expanded="false">
+        <b data-size-label>${escapeHtml(selected.label)}</b>
+        <small>${escapeHtml(formatMoney(getProductDisplayPrice(product, selected)))}</small>
+      </button>
+      <div class="variant-menu" role="listbox" hidden>
+        ${variants
+          .map((variant) => {
+            const salePrice = getProductDisplayPrice(product, variant);
+            const originalPrice = getVariantOriginalPrice(product, variant);
+            const discountPercent = getDiscountPercent(originalPrice, salePrice);
+            const preorderPrice = getVariantPreorderPrice(product, variant);
+            const wholesale = getCheapestWholesaleTier(product, variant, "stock");
+            return `
+              <button type="button" role="option" data-size-option="${escapeHtml(product.id)}" data-variant-id="${escapeHtml(variant.id)}" aria-selected="${variant.id === selected.id}">
+                <b>${escapeHtml(variant.label)}</b>
+                <span>${escapeHtml(formatMoney(salePrice))}${discountPercent ? ` / ${formatPercent(discountPercent)}% off` : ""}</span>
+                <small>${wholesale ? `${escapeHtml(formatMoney(wholesale.unitPrice))} at ${wholesale.minQty}+ pcs` : preorderPrice ? `Preorder ${escapeHtml(formatMoney(preorderPrice))}` : "Standard price"}</small>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
     </label>
   `;
 }
 
 function renderProductPrice(product, variant = null, label = "Current price", mode = "") {
-  const cheapestWholesale = getCheapestWholesaleTier(product, variant, mode);
-  const price = cheapestWholesale?.unitPrice || getProductEffectivePrice(product, 1, variant, mode);
-  const basePrice = cheapestWholesale ? getWholesaleBasePrice(product, variant, mode) : getVariantOriginalPrice(product, variant);
-  const priceLabel = cheapestWholesale ? (isPreorderMode(product, mode) ? "Lowest preorder wholesale" : "Lowest wholesale") : label;
+  const price = isPreorderMode(product, mode) ? getPreorderPrice(product, variant) : getProductDisplayPrice(product, variant);
+  const basePrice = getVariantOriginalPrice(product, variant);
+  const priceLabel = isPreorderMode(product, mode) ? "Preorder price" : label;
+  const discountPercent = getDiscountPercent(basePrice, price);
   return `
     <span>${escapeHtml(priceLabel)}</span>
     <div>
       <strong>${formatMoney(price)}</strong>
       ${basePrice > price ? `<s>${formatMoney(basePrice)}</s>` : ""}
-      ${cheapestWholesale ? `<small>${cheapestWholesale.minQty}+ pcs</small>` : ""}
+      ${discountPercent ? `<small>${formatPercent(discountPercent)}% off</small>` : ""}
     </div>
   `;
 }
 
-function updateVariantCardPricing(select) {
-  const product = getProducts().find((item) => item.id === select?.dataset.sizeSelect);
+function updateVariantCardPricing(control) {
+  const productId = control?.dataset.sizeSelect || control?.dataset.sizeToggle || control?.dataset.sizeOption;
+  const product = getProducts().find((item) => item.id === productId);
   if (!product) return;
-  const variant = getProductVariant(product, select.value);
-  const card = select.closest(".product-card");
+  const card = control.closest(".product-card");
+  const hiddenInput = card?.querySelector(`[data-size-select="${CSS.escape(product.id)}"]`);
+  const variant = getProductVariant(product, hiddenInput?.value);
   const mode = card?.dataset.orderMode || "";
   const price = card?.querySelector(`[data-price-for="${CSS.escape(product.id)}"]`);
   const wholesale = card?.querySelector(`[data-wholesale-for="${CSS.escape(product.id)}"]`);
+  const deals = card?.querySelector(`[data-deals-for="${CSS.escape(product.id)}"]`);
+  const label = card?.querySelector(".variant-picker [data-size-label]");
+  const menuButton = card?.querySelector(".variant-menu-button");
+  if (label && variant) label.textContent = variant.label;
+  if (menuButton && variant) {
+    menuButton.querySelector("small").textContent = formatMoney(getProductDisplayPrice(product, variant));
+  }
   if (price) {
     price.innerHTML = renderProductPrice(product, variant, isPreorderMode(product, mode) ? "Preorder price" : "Current price", mode);
   }
@@ -1548,6 +1598,21 @@ function updateVariantCardPricing(select) {
     wholesale.innerHTML = content;
     wholesale.hidden = !content;
   }
+  if (deals) {
+    const nextDeals = renderDealHighlights(product, variant, mode);
+    deals.outerHTML = nextDeals || `<div data-deals-for="${escapeHtml(product.id)}" hidden></div>`;
+  }
+}
+
+function closeVariantMenus(except = null) {
+  document.querySelectorAll(".variant-picker").forEach((picker) => {
+    if (picker === except) return;
+    const menu = picker.querySelector(".variant-menu");
+    const button = picker.querySelector("[data-size-toggle]");
+    if (menu) menu.hidden = true;
+    if (button) button.setAttribute("aria-expanded", "false");
+    picker.classList.remove("open");
+  });
 }
 
 function closeWholesaleMenus(except = null) {
@@ -1558,7 +1623,7 @@ function closeWholesaleMenus(except = null) {
     const button = strip.querySelector("[data-toggle-wholesale]");
     if (list) list.hidden = true;
     if (button) {
-      button.textContent = "Menu";
+      button.textContent = "Deals";
       button.setAttribute("aria-expanded", "false");
     }
   });
@@ -2997,25 +3062,6 @@ function renderHero() {
 }
 
 function renderTiers() {
-  if (shouldHoldGuestCommunity()) {
-    els.tierTrack.innerHTML = `
-      <article class="preorder-stat">
-        <span>Open products</span>
-        <strong>...</strong>
-      </article>
-      <article class="preorder-stat">
-        <span>Preorder stock</span>
-        <strong>...</strong>
-      </article>
-      <article class="preorder-stat">
-        <span>Next closing</span>
-        <strong>...</strong>
-      </article>
-    `;
-    els.refundStrip.hidden = true;
-    if (els.bulkBuyList) els.bulkBuyList.innerHTML = `<div class="empty-store">${getSharedCommunityMessage("store")}</div>`;
-    return;
-  }
   const preorderProducts = getProducts().filter((product) => product.preorderEnabled);
   const totalSlots = preorderProducts.reduce((sum, product) => sum + (product.preorderStock || 0), 0);
   const endingSoon = preorderProducts
@@ -3057,6 +3103,7 @@ function renderTiers() {
                 <p class="product-description">${escapeHtml(product.description)}</p>
                 ${renderPreorderSummary(product)}
                 ${renderVariantSelect(product)}
+                ${renderDealHighlights(product, variant, "preorder") || `<div data-deals-for="${escapeHtml(product.id)}" hidden></div>`}
                 <div class="wholesale-strip" data-wholesale-for="${escapeHtml(product.id)}" ${wholesaleContent ? "" : "hidden"}>${wholesaleContent}</div>
               </div>
               <div class="price" data-price-for="${escapeHtml(product.id)}">${renderProductPrice(product, variant, "Preorder price", "preorder")}</div>
@@ -3069,13 +3116,6 @@ function renderTiers() {
 }
 
 function renderProducts() {
-  if (shouldHoldGuestCommunity()) {
-    els.stockChip.textContent = sharedCommunityUnavailable ? "Shared store unavailable" : "Shared store loading";
-    els.storeSearch.value = state.storeSearch;
-    els.categoryFilter.innerHTML = "";
-    els.productGrid.innerHTML = `<div class="empty-store">${getSharedCommunityMessage("store")}</div>`;
-    return;
-  }
   const products = getProducts();
   const totalStock = products.reduce((sum, product) => sum + product.stock, 0);
   const bulkOpenCount = products.filter((product) => product.preorderEnabled).length;
@@ -3152,6 +3192,7 @@ function renderProducts() {
                   </div>`
             }
             ${renderVariantSelect(product)}
+            ${renderDealHighlights(product, variant, storeMode) || `<div data-deals-for="${escapeHtml(product.id)}" hidden></div>`}
             <div class="wholesale-strip" data-wholesale-for="${escapeHtml(product.id)}" ${wholesaleContent ? "" : "hidden"}>${wholesaleContent}</div>
           </div>
           <div class="price" data-price-for="${escapeHtml(product.id)}">${renderProductPrice(product, variant, storeMode === "preorder" ? "Preorder price" : "Current price", storeMode)}</div>
@@ -4861,6 +4902,12 @@ function toggleCartPopup(forceOpen) {
   renderCart();
 }
 
+function closeCartPopup() {
+  state.cartOpen = false;
+  saveUserState();
+  renderCart();
+}
+
 function toggleMessageMenu(messageId) {
   state.openActionMenuId = state.openActionMenuId === messageId ? null : messageId;
   state.openReactionMenuId = null;
@@ -5385,6 +5432,33 @@ async function readProductImageAsStorableDataUrl(file) {
   return "";
 }
 
+async function getAdminProductImageValue(file, currentValue = "", fallbackValue = "") {
+  let image = String(currentValue || "").trim();
+  if (!file) return image;
+
+  const imageDataUrl = await readProductImageAsStorableDataUrl(file);
+  const fallbackImage = getStorableProductImage(image, fallbackValue);
+  if (!imageDataUrl) {
+    window.alert("That image is too large to store in this browser. Use a smaller image or paste a Picture URL.");
+    return fallbackImage;
+  }
+  if (mediaUploadDisabled) return imageDataUrl;
+  try {
+    const uploaded = await requestJson("/api/media", {
+      method: "POST",
+      body: JSON.stringify({
+        name: file.name,
+        type: file.type,
+        file: imageDataUrl,
+      }),
+    });
+    return uploaded.url;
+  } catch (error) {
+    if (error.status === 404) mediaUploadDisabled = true;
+    return imageDataUrl;
+  }
+}
+
 function resetAdminProductForm() {
   els.adminProductSelect.value = "";
   els.adminProductNameInput.value = "";
@@ -5411,6 +5485,8 @@ function resetAdminProductForm() {
   els.adminProductAvailableAtInput.value = "";
   els.adminProductImageUrlInput.value = "";
   els.adminProductImageInput.value = "";
+  els.adminProductWholesaleImageUrlInput.value = "";
+  els.adminProductWholesaleImageInput.value = "";
 }
 
 function loadAdminProductForm(productId) {
@@ -5445,6 +5521,8 @@ function loadAdminProductForm(productId) {
   els.adminProductAvailableAtInput.value = formatDateTimeLocal(product.availableAt);
   els.adminProductImageUrlInput.value = product.image;
   els.adminProductImageInput.value = "";
+  els.adminProductWholesaleImageUrlInput.value = product.wholesaleImage || "";
+  els.adminProductWholesaleImageInput.value = "";
 }
 
 async function addAdminCategory() {
@@ -5503,32 +5581,13 @@ async function saveAdminProduct() {
   const existingProduct = products.find((item) => item.id === productId);
 
   const imageFile = els.adminProductImageInput.files?.[0];
-  let image = els.adminProductImageUrlInput.value.trim();
-  if (imageFile) {
-    const imageDataUrl = await readProductImageAsStorableDataUrl(imageFile);
-    const fallbackImage = getStorableProductImage(image, existingProduct?.image);
-    if (!imageDataUrl) {
-      image = fallbackImage;
-      window.alert("That image is too large to store in this browser. Use a smaller image or paste a Picture URL.");
-    } else if (mediaUploadDisabled) {
-      image = imageDataUrl;
-    } else {
-      try {
-        const uploaded = await requestJson("/api/media", {
-          method: "POST",
-          body: JSON.stringify({
-            name: imageFile.name,
-            type: imageFile.type,
-            file: imageDataUrl,
-          }),
-        });
-        image = uploaded.url;
-      } catch (error) {
-        if (error.status === 404) mediaUploadDisabled = true;
-        image = imageDataUrl;
-      }
-    }
-  }
+  const wholesaleImageFile = els.adminProductWholesaleImageInput.files?.[0];
+  const image = await getAdminProductImageValue(imageFile, els.adminProductImageUrlInput.value, existingProduct?.image);
+  const wholesaleImage = await getAdminProductImageValue(
+    wholesaleImageFile,
+    els.adminProductWholesaleImageUrlInput.value,
+    existingProduct?.wholesaleImage || image,
+  );
   const bulkBuyAt = parseDateTimeLocal(els.adminProductBulkBuyAtInput.value);
   const bulkBuyRepeatDays = getSelectedWeekdays("productBulkBuyRepeat");
   const bulkBuyRepeatTime = normalizeTimeValue(els.adminProductBulkBuyRepeatTimeInput.value);
@@ -5561,6 +5620,7 @@ async function saveAdminProduct() {
     poolTarget: existingProduct?.poolTarget,
     poolJoined: existingProduct?.poolJoined,
     image,
+    wholesaleImage,
     updatedAt: Date.now(),
   });
 
@@ -6074,6 +6134,8 @@ document.addEventListener("click", (event) => {
   const editPreorderButton = event.target.closest("[data-edit-preorder]");
   const openPreorderButton = event.target.closest("[data-open-preorder]");
   const toggleWholesaleButton = event.target.closest("[data-toggle-wholesale]");
+  const sizeToggleButton = event.target.closest("[data-size-toggle]");
+  const sizeOptionButton = event.target.closest("[data-size-option]");
   const removeProductButton = event.target.closest("[data-remove-product]");
   const moveProductButton = event.target.closest("[data-move-product]");
   const switchIdentityButton = event.target.closest("[data-switch-identity]");
@@ -6113,6 +6175,8 @@ document.addEventListener("click", (event) => {
     editPreorderButton ||
     openPreorderButton ||
     toggleWholesaleButton ||
+    sizeToggleButton ||
+    sizeOptionButton ||
     removeProductButton ||
     moveProductButton ||
     switchIdentityButton ||
@@ -6139,14 +6203,44 @@ document.addEventListener("click", (event) => {
       closeWholesaleMenus(strip);
       list.hidden = !shouldOpen;
       strip.classList.toggle("open", shouldOpen);
-      toggleWholesaleButton.textContent = shouldOpen ? "Close" : "Menu";
+      toggleWholesaleButton.textContent = shouldOpen ? "Close" : "Deals";
       toggleWholesaleButton.setAttribute("aria-expanded", String(shouldOpen));
     }
     return;
   }
 
+  if (sizeToggleButton) {
+    const picker = sizeToggleButton.closest(".variant-picker");
+    const menu = picker?.querySelector(".variant-menu");
+    if (menu) {
+      const shouldOpen = menu.hidden;
+      closeVariantMenus(picker);
+      menu.hidden = !shouldOpen;
+      picker.classList.toggle("open", shouldOpen);
+      sizeToggleButton.setAttribute("aria-expanded", String(shouldOpen));
+    }
+    return;
+  }
+
+  if (sizeOptionButton) {
+    const picker = sizeOptionButton.closest(".variant-picker");
+    const hiddenInput = picker?.querySelector(`[data-size-select="${CSS.escape(sizeOptionButton.dataset.sizeOption)}"]`);
+    if (hiddenInput) {
+      hiddenInput.value = sizeOptionButton.dataset.variantId || "";
+      picker.querySelectorAll("[data-size-option]").forEach((option) => {
+        option.setAttribute("aria-selected", String(option === sizeOptionButton));
+      });
+      updateVariantCardPricing(hiddenInput);
+    }
+    closeVariantMenus();
+    return;
+  }
+
   if (!event.target.closest(".wholesale-strip")) {
     closeWholesaleMenus();
+  }
+  if (!event.target.closest(".variant-picker")) {
+    closeVariantMenus();
   }
 
   if (addId) {
@@ -6246,6 +6340,11 @@ els.checkoutContinueBtn?.addEventListener("click", closeCheckoutModal);
 els.checkoutOverlay?.addEventListener("click", (event) => {
   if (event.target === els.checkoutOverlay) closeCheckoutModal();
 });
+els.cartPopover?.addEventListener("click", (event) => {
+  if (event.target !== els.cartPopover) return;
+  closeCartPopup();
+});
+els.closeCartBtn?.addEventListener("click", closeCartPopup);
 els.clearCartBtn.addEventListener("click", clearCart);
 els.paymentReceiptInput.addEventListener("change", handlePaymentReceiptUpload);
 els.removePaymentReceiptBtn.addEventListener("click", clearPaymentReceipt);

@@ -2,10 +2,316 @@
   "buyerCount": 0,
   "transactionCount": 0,
   "receipts": [],
-  "chat": [],
-  "announcements": [],
+  "chat": [
+    {
+      "id": "chat-1780508778836-8892",
+      "author": "System",
+      "text": "admin joined with a private DETI session.",
+      "system": true,
+      "reactions": {
+        "like": 0,
+        "love": 0,
+        "haha": 0,
+        "wow": 0,
+        "sad": 0,
+        "angry": 0
+      },
+      "createdAt": 1780508778836,
+      "expiresAt": null,
+      "replyToId": null,
+      "type": "text",
+      "pinned": true,
+      "receipt": null,
+      "media": null,
+      "adminActingAs": "",
+      "audience": {
+        "mode": "all",
+        "target": ""
+      },
+      "userReactions": {}
+    },
+    {
+      "id": "chat-1780508791557-1452",
+      "author": "System",
+      "text": "Admin removed product DETI Core Stack.",
+      "system": true,
+      "reactions": {
+        "like": 0,
+        "love": 0,
+        "haha": 0,
+        "wow": 0,
+        "sad": 0,
+        "angry": 0
+      },
+      "createdAt": 1780508791557,
+      "expiresAt": null,
+      "replyToId": null,
+      "type": "text",
+      "pinned": true,
+      "receipt": null,
+      "media": null,
+      "adminActingAs": "",
+      "audience": {
+        "mode": "all",
+        "target": ""
+      },
+      "userReactions": {}
+    },
+    {
+      "id": "chat-1780508794178-6869",
+      "author": "System",
+      "text": "Admin removed product Focus Lab Kit.",
+      "system": true,
+      "reactions": {
+        "like": 0,
+        "love": 0,
+        "haha": 0,
+        "wow": 0,
+        "sad": 0,
+        "angry": 0
+      },
+      "createdAt": 1780508794178,
+      "expiresAt": null,
+      "replyToId": null,
+      "type": "text",
+      "pinned": true,
+      "receipt": null,
+      "media": null,
+      "adminActingAs": "",
+      "audience": {
+        "mode": "all",
+        "target": ""
+      },
+      "userReactions": {}
+    },
+    {
+      "id": "chat-1780508796680-8546",
+      "author": "System",
+      "text": "Admin removed product Night Recovery Pack.",
+      "system": true,
+      "reactions": {
+        "like": 0,
+        "love": 0,
+        "haha": 0,
+        "wow": 0,
+        "sad": 0,
+        "angry": 0
+      },
+      "createdAt": 1780508796680,
+      "expiresAt": null,
+      "replyToId": null,
+      "type": "text",
+      "pinned": true,
+      "receipt": null,
+      "media": null,
+      "adminActingAs": "",
+      "audience": {
+        "mode": "all",
+        "target": ""
+      },
+      "userReactions": {}
+    },
+    {
+      "id": "chat-1780509358467-3298",
+      "author": "System",
+      "text": "Admin updated product Tirzepatide.",
+      "system": true,
+      "reactions": {
+        "like": 0,
+        "love": 0,
+        "haha": 0,
+        "wow": 0,
+        "sad": 0,
+        "angry": 0
+      },
+      "createdAt": 1780509358467,
+      "expiresAt": null,
+      "replyToId": null,
+      "type": "text",
+      "pinned": true,
+      "receipt": null,
+      "media": null,
+      "adminActingAs": "",
+      "audience": {
+        "mode": "all",
+        "target": ""
+      },
+      "userReactions": {}
+    },
+    {
+      "id": "chat-1780509398360-3605",
+      "author": "System",
+      "text": "Admin updated product Tirzepatide.",
+      "system": true,
+      "reactions": {
+        "like": 0,
+        "love": 0,
+        "haha": 0,
+        "wow": 0,
+        "sad": 0,
+        "angry": 0
+      },
+      "createdAt": 1780509398360,
+      "expiresAt": null,
+      "replyToId": null,
+      "type": "text",
+      "pinned": true,
+      "receipt": null,
+      "media": null,
+      "adminActingAs": "",
+      "audience": {
+        "mode": "all",
+        "target": ""
+      },
+      "userReactions": {}
+    },
+    {
+      "id": "chat-1780509398931-8593",
+      "author": "System",
+      "text": "Admin updated product Tirzepatide.",
+      "system": true,
+      "reactions": {
+        "like": 0,
+        "love": 0,
+        "haha": 0,
+        "wow": 0,
+        "sad": 0,
+        "angry": 0
+      },
+      "createdAt": 1780509398931,
+      "expiresAt": null,
+      "replyToId": null,
+      "type": "text",
+      "pinned": true,
+      "receipt": null,
+      "media": null,
+      "adminActingAs": "",
+      "audience": {
+        "mode": "all",
+        "target": ""
+      },
+      "userReactions": {}
+    },
+    {
+      "id": "chat-1780509399146-4159",
+      "author": "System",
+      "text": "Admin updated product Tirzepatide.",
+      "system": true,
+      "reactions": {
+        "like": 0,
+        "love": 0,
+        "haha": 0,
+        "wow": 0,
+        "sad": 0,
+        "angry": 0
+      },
+      "createdAt": 1780509399146,
+      "expiresAt": null,
+      "replyToId": null,
+      "type": "text",
+      "pinned": true,
+      "receipt": null,
+      "media": null,
+      "adminActingAs": "",
+      "audience": {
+        "mode": "all",
+        "target": ""
+      },
+      "userReactions": {}
+    },
+    {
+      "id": "chat-1780509401215-2360",
+      "author": "System",
+      "text": "Admin updated product Tirzepatide.",
+      "system": true,
+      "reactions": {
+        "like": 0,
+        "love": 0,
+        "haha": 0,
+        "wow": 0,
+        "sad": 0,
+        "angry": 0
+      },
+      "createdAt": 1780509401215,
+      "expiresAt": null,
+      "replyToId": null,
+      "type": "text",
+      "pinned": true,
+      "receipt": null,
+      "media": null,
+      "adminActingAs": "",
+      "audience": {
+        "mode": "all",
+        "target": ""
+      },
+      "userReactions": {}
+    }
+  ],
+  "announcements": [
+    {
+      "id": "ann-1780509401215-7182",
+      "title": "Product updated",
+      "text": "Admin updated product Tirzepatide.",
+      "createdAt": 1780509401215
+    },
+    {
+      "id": "ann-1780509399146-9602",
+      "title": "Product updated",
+      "text": "Admin updated product Tirzepatide.",
+      "createdAt": 1780509399146
+    },
+    {
+      "id": "ann-1780509398931-6238",
+      "title": "Product updated",
+      "text": "Admin updated product Tirzepatide.",
+      "createdAt": 1780509398931
+    },
+    {
+      "id": "ann-1780509398360-6777",
+      "title": "Product updated",
+      "text": "Admin updated product Tirzepatide.",
+      "createdAt": 1780509398360
+    },
+    {
+      "id": "ann-1780509358467-1101",
+      "title": "Product updated",
+      "text": "Admin updated product Tirzepatide.",
+      "createdAt": 1780509358467
+    },
+    {
+      "id": "ann-1780508796680-369",
+      "title": "Product removed",
+      "text": "Admin removed product Night Recovery Pack.",
+      "createdAt": 1780508796680
+    },
+    {
+      "id": "ann-1780508794178-9722",
+      "title": "Product removed",
+      "text": "Admin removed product Focus Lab Kit.",
+      "createdAt": 1780508794178
+    },
+    {
+      "id": "ann-1780508791558-4084",
+      "title": "Product removed",
+      "text": "Admin removed product DETI Core Stack.",
+      "createdAt": 1780508791558
+    },
+    {
+      "id": "ann-1780508778837-1067",
+      "title": "Community member joined",
+      "text": "admin joined with a private DETI session.",
+      "createdAt": 1780508778837
+    }
+  ],
   "directMessages": [],
-  "members": {},
+  "members": {
+    "admin": {
+      "handle": "admin",
+      "username": "admin",
+      "joinedAt": 1780509271087,
+      "lastSeen": 1780509433536
+    }
+  },
   "moderation": {
     "blocked": {},
     "timeouts": {},
@@ -15,104 +321,303 @@
   },
   "products": [
     {
-      "id": "deti-core",
-      "name": "DETI Core Stack",
-      "category": "Core",
-      "type": "Flagship",
-      "description": "Daily core bundle for the main DETI stack.",
-      "originalPrice": 2499,
-      "salePrice": 1999,
+      "id": "tirzepatide",
+      "name": "Tirzepatide",
+      "category": "Top Products",
+      "type": "Standard",
+      "description": "Product available in the group store.",
+      "originalPrice": 1429,
+      "salePrice": 949,
       "wholesaleTiers": [
         {
-          "minQty": 3,
-          "unitPrice": 1799
-        }
-      ],
-      "saleEnabled": true,
-      "saleEndsAt": 1779589533625,
-      "stock": 42,
-      "preorderEnabled": false,
-      "preorderPrice": 0,
-      "preorderStock": 0,
-      "preorderEndsAt": null,
-      "bulkBuyAt": null,
-      "availableAt": null,
-      "banner": "Sale",
-      "featured": true,
-      "sortOrder": 1,
-      "poolTarget": 24,
-      "poolJoined": 17,
-      "image": "assets/deti-storefront.png"
-    },
-    {
-      "id": "deti-night",
-      "name": "Night Recovery Pack",
-      "category": "Recovery",
-      "type": "Bundle",
-      "description": "Evening recovery bundle for repeat buyers.",
-      "originalPrice": 2199,
-      "salePrice": 0,
-      "wholesaleTiers": [
-        {
-          "minQty": 3,
-          "unitPrice": 1999
+          "minQty": 5,
+          "unitPrice": 879,
+          "discountPercent": 0
         },
         {
-          "minQty": 6,
-          "unitPrice": 1799
+          "minQty": 10,
+          "unitPrice": 839,
+          "discountPercent": 0
         }
       ],
-      "saleEnabled": false,
-      "saleEndsAt": null,
-      "stock": 31,
-      "preorderEnabled": false,
-      "preorderPrice": 0,
-      "preorderStock": 0,
-      "preorderEndsAt": null,
-      "bulkBuyAt": null,
-      "availableAt": null,
-      "banner": "Bundle",
-      "featured": false,
-      "sortOrder": 3,
-      "poolTarget": 18,
-      "poolJoined": 9,
-      "image": "assets/deti-storefront.png"
-    },
-    {
-      "id": "deti-focus",
-      "name": "Focus Lab Kit",
-      "category": "Performance",
-      "type": "Limited",
-      "description": "Limited focus set for productivity sessions.",
-      "originalPrice": 1899,
-      "salePrice": 1499,
-      "wholesaleTiers": [
+      "preorderWholesaleTiers": [],
+      "variants": [
         {
-          "minQty": 3,
-          "unitPrice": 1399
+          "id": "5mg",
+          "label": "5mg",
+          "originalPrice": 1429,
+          "salePrice": 949,
+          "preorderPrice": 559,
+          "wholesaleTiers": [
+            {
+              "minQty": 5,
+              "unitPrice": 879,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 10,
+              "unitPrice": 839,
+              "discountPercent": 0
+            }
+          ],
+          "preorderWholesaleTiers": [
+            {
+              "minQty": 3,
+              "unitPrice": 509,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 6,
+              "unitPrice": 479,
+              "discountPercent": 0
+            }
+          ]
+        },
+        {
+          "id": "10mg",
+          "label": "10mg",
+          "originalPrice": 1759,
+          "salePrice": 1169,
+          "preorderPrice": 689,
+          "wholesaleTiers": [
+            {
+              "minQty": 5,
+              "unitPrice": 1079,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 10,
+              "unitPrice": 1039,
+              "discountPercent": 0
+            }
+          ],
+          "preorderWholesaleTiers": [
+            {
+              "minQty": 3,
+              "unitPrice": 629,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 6,
+              "unitPrice": 589,
+              "discountPercent": 0
+            }
+          ]
+        },
+        {
+          "id": "15mg",
+          "label": "15mg",
+          "originalPrice": 2329,
+          "salePrice": 1549,
+          "preorderPrice": 909,
+          "wholesaleTiers": [
+            {
+              "minQty": 5,
+              "unitPrice": 1429,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 10,
+              "unitPrice": 1369,
+              "discountPercent": 0
+            }
+          ],
+          "preorderWholesaleTiers": [
+            {
+              "minQty": 3,
+              "unitPrice": 819,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 6,
+              "unitPrice": 779,
+              "discountPercent": 0
+            }
+          ]
+        },
+        {
+          "id": "20mg",
+          "label": "20mg",
+          "originalPrice": 2629,
+          "salePrice": 1749,
+          "preorderPrice": 1029,
+          "wholesaleTiers": [
+            {
+              "minQty": 5,
+              "unitPrice": 1609,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 10,
+              "unitPrice": 1549,
+              "discountPercent": 0
+            }
+          ],
+          "preorderWholesaleTiers": [
+            {
+              "minQty": 3,
+              "unitPrice": 929,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 6,
+              "unitPrice": 879,
+              "discountPercent": 0
+            }
+          ]
+        },
+        {
+          "id": "30mg",
+          "label": "30mg",
+          "originalPrice": 3119,
+          "salePrice": 2079,
+          "preorderPrice": 1229,
+          "wholesaleTiers": [
+            {
+              "minQty": 5,
+              "unitPrice": 1919,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 10,
+              "unitPrice": 1839,
+              "discountPercent": 0
+            }
+          ],
+          "preorderWholesaleTiers": [
+            {
+              "minQty": 3,
+              "unitPrice": 1109,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 6,
+              "unitPrice": 1049,
+              "discountPercent": 0
+            }
+          ]
+        },
+        {
+          "id": "40mg",
+          "label": "40mg",
+          "originalPrice": 3709,
+          "salePrice": 2469,
+          "preorderPrice": 1459,
+          "wholesaleTiers": [
+            {
+              "minQty": 5,
+              "unitPrice": 2279,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 10,
+              "unitPrice": 2189,
+              "discountPercent": 0
+            }
+          ],
+          "preorderWholesaleTiers": [
+            {
+              "minQty": 3,
+              "unitPrice": 1319,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 6,
+              "unitPrice": 1249,
+              "discountPercent": 0
+            }
+          ]
+        },
+        {
+          "id": "50mg",
+          "label": "50mg",
+          "originalPrice": 4399,
+          "salePrice": 2929,
+          "preorderPrice": 1729,
+          "wholesaleTiers": [
+            {
+              "minQty": 5,
+              "unitPrice": 2699,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 10,
+              "unitPrice": 2589,
+              "discountPercent": 0
+            }
+          ],
+          "preorderWholesaleTiers": [
+            {
+              "minQty": 3,
+              "unitPrice": 1559,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 6,
+              "unitPrice": 1479,
+              "discountPercent": 0
+            }
+          ]
+        },
+        {
+          "id": "60mg",
+          "label": "60mg",
+          "originalPrice": 5269,
+          "salePrice": 3509,
+          "preorderPrice": 2069,
+          "wholesaleTiers": [
+            {
+              "minQty": 5,
+              "unitPrice": 3239,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 10,
+              "unitPrice": 3109,
+              "discountPercent": 0
+            }
+          ],
+          "preorderWholesaleTiers": [
+            {
+              "minQty": 3,
+              "unitPrice": 1869,
+              "discountPercent": 0
+            },
+            {
+              "minQty": 6,
+              "unitPrice": 1759,
+              "discountPercent": 0
+            }
+          ]
         }
       ],
+      "featured": true,
+      "sortOrder": 1,
       "saleEnabled": true,
-      "saleEndsAt": 1779546333625,
-      "stock": 26,
-      "preorderEnabled": false,
+      "saleEndsAt": null,
+      "basePrice": 1429,
+      "stock": 979,
+      "preorderEnabled": true,
       "preorderPrice": 0,
       "preorderStock": 0,
       "preorderEndsAt": null,
       "bulkBuyAt": null,
+      "bulkBuyRepeatDays": [
+        2,
+        5
+      ],
+      "bulkBuyRepeatTime": "01:11",
       "availableAt": null,
-      "banner": "Hot",
-      "featured": true,
-      "sortOrder": 2,
-      "poolTarget": 30,
-      "poolJoined": 22,
-      "image": "assets/deti-storefront.png"
+      "banner": "best seller",
+      "poolTarget": 1,
+      "poolJoined": 0,
+      "image": "assets/deti-storefront.png",
+      "wholesaleImage": "https://res.cloudinary.com/dhb9rbqpt/image/upload/v1780509400/deti-chat/sf2vga2myqttztvw56js.jpg",
+      "updatedAt": 1780509401215
     }
   ],
   "productCategories": [
-    "Core",
-    "Recovery",
-    "Performance"
+    "Top Products"
   ],
   "demoCatalogSeeded": true,
   "buyerControlsEnabled": true,
@@ -132,5 +637,20 @@
     "rules": []
   },
   "dataResetVersion": "2026-05-23-admin-only-clean",
-  "dataResetAt": 1779503133625
+  "dataResetAt": 1779503133625,
+  "productDeletedAt": {
+    "deti-core": 1780508791557,
+    "deti-focus": 1780508794178,
+    "deti-night": 1780508796680
+  },
+  "productCategoryUpdatedAt": {
+    "Top Products": 1780509300000
+  },
+  "productCategoryDeletedAt": {},
+  "announcementDeletedAt": {},
+  "chatDeletedAt": {},
+  "directMessageDeletedAt": {},
+  "memberDeletedAt": {},
+  "replacementDeletedAt": {},
+  "trollRuleDeletedAt": {}
 }
