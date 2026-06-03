@@ -2522,8 +2522,8 @@ function getAdjustedGroupPresenceStats(realStats) {
   if (!controls.memberStatsEnabled) return realStats;
   const multipliedActive = Math.max(realStats.active, realStats.active * controls.activeMultiplier);
   const active = getRandomizedAlwaysActiveCount(controls, multipliedActive);
-  const baseTotal = Math.max(realStats.members, active);
-  const members = Math.max(active, baseTotal * controls.totalMultiplier + controls.inactiveMembers);
+  const stableBaseTotal = Math.max(realStats.members, multipliedActive, controls.activeMax || controls.activeMin || 0);
+  const members = Math.max(active, stableBaseTotal * controls.totalMultiplier + controls.inactiveMembers);
   return {
     active: Math.round(active),
     members: Math.round(members),
