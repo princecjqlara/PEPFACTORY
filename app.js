@@ -530,6 +530,7 @@ const els = {
   adminTrollReceiptImageInput: document.querySelector("#adminTrollReceiptImageInput"),
   adminTrollUploadSummary: document.querySelector("#adminTrollUploadSummary"),
   adminNewTrollRuleBtn: document.querySelector("#adminNewTrollRuleBtn"),
+  adminTrollRestoreAdminHandleBtn: document.querySelector("#adminTrollRestoreAdminHandleBtn"),
   adminSaveTrollRuleBtn: document.querySelector("#adminSaveTrollRuleBtn"),
   adminDeleteTrollRuleBtn: document.querySelector("#adminDeleteTrollRuleBtn"),
   adminTrollRuleList: document.querySelector("#adminTrollRuleList"),
@@ -782,6 +783,29 @@ function normalizeTrollControls(controls = {}) {
     nextControls.selectedRuleId = "";
   }
   return nextControls;
+}
+
+function mergeTrollControls(localControls = {}, incomingControls = {}) {
+  const local = normalizeTrollControls(localControls);
+  const incoming = normalizeTrollControls(incomingControls);
+  const rules = new Map();
+  local.rules.forEach((rule) => rules.set(rule.id, rule));
+  incoming.rules.forEach((rule) => rules.set(rule.id, { ...(rules.get(rule.id) || {}), ...rule }));
+  return normalizeTrollControls({
+    ...local,
+    ...incoming,
+    cursorByTrigger: {
+      ...(local.cursorByTrigger || {}),
+      ...(incoming.cursorByTrigger || {}),
+    },
+    firstMessageDayByUser: {
+      ...(local.firstMessageDayByUser || {}),
+      ...(incoming.firstMessageDayByUser || {}),
+    },
+    trollAccounts: [...new Set([...(local.trollAccounts || []), ...(incoming.trollAccounts || [])])],
+    rules: [...rules.values()],
+    selectedRuleId: incoming.selectedRuleId || local.selectedRuleId,
+  });
 }
 
 function normalizeTrollRule(rule = {}) {
@@ -1963,6 +1987,7 @@ function applyCommunityState(nextCommunityState) {
   mergedCommunityState.directMessages = mergeCommunityRecords(state.directMessages, nextCommunityState?.directMessages, { limit: 300 });
   mergedCommunityState.announcements = mergeCommunityRecords(state.announcements, nextCommunityState?.announcements, { limit: 30, descending: true });
   mergedCommunityState.receipts = mergeCommunityRecords(state.receipts, nextCommunityState?.receipts, { limit: 24, descending: true });
+  mergedCommunityState.trollControls = mergeTrollControls(state.trollControls, nextCommunityState?.trollControls);
   const normalized = normalizeState({ ...structuredClone(fallbackState), ...state, ...pickStateKeys(mergedCommunityState, communityStateKeys) });
   Object.assign(state, pickStateKeys(normalized, communityStateKeys));
   normalizeModerationRecords();
@@ -4443,9 +4468,9 @@ function renderAdminPanel() {
   els.adminGoldenDistanceInput.disabled = !admin || !isGoldenTicketEnabled();
   els.adminSetGoldenBtn.disabled = !admin || !isGoldenTicketEnabled();
   els.adminRunGoldenBtn.disabled = !admin || !isGoldenTicketEnabled();
-  els.adminTrollMaxParallelInput.disabled = !admin || !getTrollControls().enabled;
-  els.adminTrollRoundRobinToggle.disabled = !admin || !getTrollControls().enabled;
-  els.adminSaveTrollRuleBtn.disabled = !admin || !getTrollControls().enabled || !els.adminTrollAccountSelect.value;
+  els.adminTrollMaxParallelInput.disabled = !admin;
+  els.adminTrollRoundRobinToggle.disabled = !admin;
+  els.adminSaveTrollRuleBtn.disabled = !admin || !els.adminTrollAccountSelect.value;
   els.adminDeleteTrollRuleBtn.disabled = !admin || !getSelectedTrollRule();
   els.adminSaveTrollStatsBtn.disabled = !admin;
 }
@@ -6858,6 +6883,7 @@ els.adminTrollMaxParallelInput.addEventListener("change", async () => {
   renderAdminTrollControls();
 });
 els.adminNewTrollRuleBtn.addEventListener("click", resetTrollRuleForm);
+els.adminTrollRestoreAdminHandleBtn?.addEventListener("click", restoreAdminHandle);
 els.adminSaveTrollRuleBtn.addEventListener("click", saveTrollRule);
 els.adminDeleteTrollRuleBtn.addEventListener("click", deleteTrollRule);
 els.adminSaveTrollStatsBtn.addEventListener("click", saveTrollStats);

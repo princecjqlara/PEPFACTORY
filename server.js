@@ -138,6 +138,33 @@ function mergeStringList(existingList = [], incomingList = []) {
   return [...new Set([...(Array.isArray(existingList) ? existingList : []), ...(Array.isArray(incomingList) ? incomingList : [])].filter(Boolean))];
 }
 
+function mergeTrollControls(existingControls = {}, incomingControls = {}) {
+  const existing = existingControls && typeof existingControls === "object" ? existingControls : {};
+  const incoming = incomingControls && typeof incomingControls === "object" ? incomingControls : {};
+  const rules = new Map();
+  (Array.isArray(existing.rules) ? existing.rules : []).forEach((rule) => {
+    if (rule?.id) rules.set(rule.id, rule);
+  });
+  (Array.isArray(incoming.rules) ? incoming.rules : []).forEach((rule) => {
+    if (rule?.id) rules.set(rule.id, { ...(rules.get(rule.id) || {}), ...rule });
+  });
+  return {
+    ...existing,
+    ...incoming,
+    cursorByTrigger: {
+      ...(existing.cursorByTrigger || {}),
+      ...(incoming.cursorByTrigger || {}),
+    },
+    firstMessageDayByUser: {
+      ...(existing.firstMessageDayByUser || {}),
+      ...(incoming.firstMessageDayByUser || {}),
+    },
+    trollAccounts: mergeStringList(existing.trollAccounts, incoming.trollAccounts),
+    rules: [...rules.values()],
+    selectedRuleId: incoming.selectedRuleId || existing.selectedRuleId || "",
+  };
+}
+
 function applyDeletionMarkers(community) {
   if (Array.isArray(community.products)) {
     community.products = community.products
@@ -237,6 +264,7 @@ function mergeCommunityState(existing = {}, incoming = {}) {
     directMessages: mergeRecords(existing.directMessages, incoming.directMessages, { limit: 300 }),
     announcements: mergeRecords(existing.announcements, incoming.announcements, { limit: 30, descending: true }),
     receipts: mergeRecords(existing.receipts, incoming.receipts, { limit: 24, descending: true }),
+    trollControls: mergeTrollControls(existing.trollControls, incoming.trollControls),
     dataResetAt: resetAt,
   };
   applyDeletionMarkers(merged);
