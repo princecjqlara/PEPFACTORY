@@ -509,6 +509,25 @@
           <div class="admin-tab-panel" data-admin-panel="orders">
             <section class="admin-tool-card">
               <div class="admin-form-head">
+                <h3>GCash Payment</h3>
+                <span>Set the masked payee name and QR shown at checkout</span>
+              </div>
+              <label>
+                <span>Masked GCash name</span>
+                <input id="adminGcashNameInput" type="text" maxlength="42" placeholder="C*** L***" />
+              </label>
+              <label>
+                <span>Upload GCash QR</span>
+                <input id="adminGcashQrInput" type="file" accept="image/*" />
+              </label>
+              <div class="admin-upload-summary" id="adminGcashQrPreview"></div>
+              <div class="admin-actions">
+                <button class="ghost-button" id="adminRemoveGcashQrBtn" type="button">Remove QR</button>
+                <button class="primary-button" id="adminSavePaymentSettingsBtn" type="button">Save GCash</button>
+              </div>
+            </section>
+            <section class="admin-tool-card">
+              <div class="admin-form-head">
                 <h3>Orders</h3>
                 <span>Review receipt submissions by status</span>
               </div>
@@ -730,6 +749,7 @@
               <span id="checkoutModalCount">0 pcs</span>
             </div>
             <div class="checkout-cart-list" id="checkoutModalList"></div>
+            <div class="checkout-total-summary" id="checkoutTotalSummary"></div>
           </section>
           <section class="checkout-block">
             <div class="checkout-block-head">
@@ -740,6 +760,7 @@
           </section>
         </div>
         <div class="checkout-payment">
+          <div class="gcash-payee" id="checkoutGcashDetails"></div>
           <div class="payment-upload">
             <label for="paymentReceiptInput">Upload GCash receipt photo</label>
             <input id="paymentReceiptInput" type="file" accept="image/*" required />

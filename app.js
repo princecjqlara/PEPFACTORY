@@ -207,6 +207,11 @@ const communityDataResetVersion = localDataResetVersion;
 const productImageDataUrlLimit = 180000;
 const apiBase = window.location.origin;
 const systemProfileAuthor = "DETI System";
+const defaultPaymentSettings = {
+  gcashName: "C*** L***",
+  gcashQr: "",
+  updatedAt: 0,
+};
 const receiptStatusOptions = [
   { key: "pending", label: "Pending" },
   { key: "verified", label: "Payment Verified" },
@@ -305,6 +310,7 @@ const communityStateKeys = [
   "demoCatalogSeeded",
   "buyerControlsEnabled",
   "goldenTicketEnabled",
+  "paymentSettings",
   "trollControls",
   "dataResetVersion",
   "dataResetAt",
@@ -343,6 +349,7 @@ const fallbackState = {
   transactionCount: 0,
   buyerControlsEnabled: true,
   goldenTicketEnabled: true,
+  paymentSettings: structuredClone(defaultPaymentSettings),
   trollControls: structuredClone(defaultTrollControls),
   products: structuredClone(defaultProducts),
   productDeletedAt: {},
@@ -411,11 +418,13 @@ const els = {
   paymentReceiptImage: document.querySelector("#paymentReceiptImage"),
   paymentReceiptName: document.querySelector("#paymentReceiptName"),
   removePaymentReceiptBtn: document.querySelector("#removePaymentReceiptBtn"),
+  checkoutGcashDetails: document.querySelector("#checkoutGcashDetails"),
   checkoutOverlay: document.querySelector("#checkoutOverlay"),
   checkoutCloseBtn: document.querySelector("#checkoutCloseBtn"),
   checkoutContinueBtn: document.querySelector("#checkoutContinueBtn"),
   checkoutSubmitBtn: document.querySelector("#checkoutSubmitBtn"),
   checkoutModalList: document.querySelector("#checkoutModalList"),
+  checkoutTotalSummary: document.querySelector("#checkoutTotalSummary"),
   checkoutUpsellList: document.querySelector("#checkoutUpsellList"),
   checkoutModalTotal: document.querySelector("#checkoutModalTotal"),
   checkoutModalCount: document.querySelector("#checkoutModalCount"),
@@ -488,6 +497,11 @@ const els = {
   adminProductWholesaleImageInput: document.querySelector("#adminProductWholesaleImageInput"),
   adminGoldenTicketToggle: document.querySelector("#adminGoldenTicketToggle"),
   adminGoldenDistanceInput: document.querySelector("#adminGoldenDistanceInput"),
+  adminGcashNameInput: document.querySelector("#adminGcashNameInput"),
+  adminGcashQrInput: document.querySelector("#adminGcashQrInput"),
+  adminGcashQrPreview: document.querySelector("#adminGcashQrPreview"),
+  adminSavePaymentSettingsBtn: document.querySelector("#adminSavePaymentSettingsBtn"),
+  adminRemoveGcashQrBtn: document.querySelector("#adminRemoveGcashQrBtn"),
   adminReceiptSearchInput: document.querySelector("#adminReceiptSearchInput"),
   adminReceiptStatusTabs: document.querySelector("#adminReceiptStatusTabs"),
   adminReceiptList: document.querySelector("#adminReceiptList"),
@@ -629,7 +643,10 @@ function hasCustomCommunityContent(communityState = {}) {
     : [];
   const hasOrders = Array.isArray(communityState.receipts) && communityState.receipts.length > 0;
   const hasAnnouncements = Array.isArray(communityState.announcements) && communityState.announcements.length > 0;
-  return hasCustomProducts || visibleChat.length > 0 || hasOrders || hasAnnouncements;
+  const paymentSettings = normalizePaymentSettings(communityState.paymentSettings);
+  const hasPaymentSettings =
+    paymentSettings.gcashName !== defaultPaymentSettings.gcashName || Boolean(paymentSettings.gcashQr);
+  return hasCustomProducts || visibleChat.length > 0 || hasOrders || hasAnnouncements || hasPaymentSettings;
 }
 
 function isSeededProductMatch(product, seededProduct) {
@@ -705,9 +722,27 @@ function getStorableProductImage(image, fallbackImage = "") {
   return image;
 }
 
+function getStorablePaymentQr(image) {
+  const value = String(image || "").trim();
+  if (!value) return "";
+  if (isDataUrl(value)) return isStorableDataUrl(value) ? value : "";
+  return value;
+}
+
+function normalizePaymentSettings(settings = {}) {
+  return {
+    ...defaultPaymentSettings,
+    ...(settings || {}),
+    gcashName: String(settings?.gcashName || defaultPaymentSettings.gcashName).trim().slice(0, 42),
+    gcashQr: getStorablePaymentQr(settings?.gcashQr),
+    updatedAt: Math.max(0, Number(settings?.updatedAt) || 0),
+  };
+}
+
 function sanitizeCommunityStateForStorage(communityState) {
   return {
     ...communityState,
+    paymentSettings: normalizePaymentSettings(communityState.paymentSettings),
     products: Array.isArray(communityState.products)
       ? communityState.products.map((product) => ({
           ...product,
@@ -864,6 +899,7 @@ function normalizeState(nextState) {
   nextState.announcements = nextState.announcements || [];
   nextState.buyerControlsEnabled = nextState.buyerControlsEnabled !== false;
   nextState.goldenTicketEnabled = nextState.goldenTicketEnabled !== false;
+  nextState.paymentSettings = normalizePaymentSettings(nextState.paymentSettings);
   nextState.trollControls = normalizeTrollControls(nextState.trollControls);
   nextState.trollControls.rules = nextState.trollControls.rules.filter(
     (rule) => !isDeleted(rule.id, nextState.trollRuleDeletedAt) && !isDeleted(rule.account, nextState.memberDeletedAt, getMemberUpdatedAt(nextState.members?.[rule.account])),
@@ -2154,6 +2190,14 @@ function getCartTotal() {
   }, 0);
 }
 
+function getCartSubtotalBeforeSavings() {
+  return Object.entries(state.cart).reduce((sum, [cartKey, qty]) => {
+    const line = getCartLine(cartKey);
+    if (!line) return sum;
+    return sum + getWholesaleBasePrice(line.product, line.variant, line.mode) * qty;
+  }, 0);
+}
+
 function getCartSavings() {
   return Object.entries(state.cart).reduce((sum, [cartKey, qty]) => {
     const line = getCartLine(cartKey);
@@ -2261,6 +2305,18 @@ function getReceiptPaidTotal(receipt) {
     return receipt.items.reduce((sum, item) => sum + item.paidUnit * item.qty, 0);
   }
   return (receipt.paidUnit || 0) * (receipt.units || 0);
+}
+
+function getReceiptSavingsTotal(receipt) {
+  if (Number(receipt.savedTotal) > 0) return Number(receipt.savedTotal);
+  if (receipt.items) {
+    return receipt.items.reduce((sum, item) => {
+      const retailUnit = Number(item.retailUnit) || Number(item.paidUnit) || 0;
+      const paidUnit = Number(item.paidUnit) || 0;
+      return sum + Math.max(0, retailUnit - paidUnit) * (Number(item.qty) || 0);
+    }, 0);
+  }
+  return 0;
 }
 
 function getReceiptTargetRefund(receipt, activePrice) {
@@ -2738,15 +2794,115 @@ function closeCheckoutModal() {
   els.checkoutOverlay?.setAttribute("aria-hidden", "true");
 }
 
+function getPaymentSettings() {
+  return normalizePaymentSettings(state.paymentSettings);
+}
+
+function getCartLineSummary(cartKey, qty) {
+  const line = getCartLine(cartKey);
+  if (!line) return null;
+  const paidUnit = getProductEffectivePrice(line.product, qty, line.variant, line.mode);
+  const retailUnit = getWholesaleBasePrice(line.product, line.variant, line.mode);
+  const wholesaleTier = getWholesaleTier(line.product, qty, line.variant, line.mode);
+  const nextTier = getNextWholesaleTier(line.product, qty, line.variant, line.mode);
+  const saved = Math.max(0, retailUnit - paidUnit) * qty;
+  const lineTotal = paidUnit * qty;
+  return {
+    ...line,
+    qty,
+    paidUnit,
+    retailUnit,
+    wholesaleTier,
+    nextTier,
+    saved,
+    lineTotal,
+    tierLabel: wholesaleTier
+      ? `${line.mode === "preorder" ? "Preorder " : ""}${formatWholesaleTierLabel(wholesaleTier)}`
+      : line.mode === "preorder"
+      ? "Group Buy base"
+      : "Base price",
+  };
+}
+
+function renderCheckoutLineItems() {
+  return Object.entries(state.cart)
+    .map(([cartKey, qty]) => getCartLineSummary(cartKey, qty))
+    .filter(Boolean)
+    .map((line) => {
+      const nextTierDetail = line.nextTier
+        ? `Add ${line.nextTier.minQty - line.qty} more for ${formatWholesaleTierLabel(line.nextTier)}`
+        : "";
+      return `
+        <article class="checkout-line">
+          <img src="${escapeHtml(line.product.image)}" alt="${escapeHtml(line.product.name)}" loading="lazy" />
+          <div class="checkout-line-main">
+            <strong>${escapeHtml(getCartItemName(line.product, line.variant))}</strong>
+            <div class="checkout-line-meta">
+              <span><b>${line.qty}</b> pc${line.qty === 1 ? "" : "s"}</span>
+              <span><b>${escapeHtml(line.tierLabel)}</b></span>
+              <span><b>${formatMoney(line.paidUnit)}</b> each</span>
+              <span><b>${formatMoney(line.lineTotal)}</b> line total</span>
+              <span class="${line.saved ? "saving" : ""}"><b>${formatMoney(line.saved)}</b> saved</span>
+            </div>
+            ${line.mode === "preorder" ? `<small>${escapeHtml(getBulkBuyLabel(line.product))} / ${escapeHtml(getAvailabilityLabel(line.product))}</small>` : ""}
+            ${nextTierDetail ? `<small>${escapeHtml(nextTierDetail)}</small>` : ""}
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderCheckoutTotalSummary() {
+  const subtotal = getCartSubtotalBeforeSavings();
+  const total = getCartTotal();
+  const saved = getCartSavings();
+  return `
+    <div>
+      <span>Before tier savings</span>
+      <strong>${formatMoney(subtotal)}</strong>
+    </div>
+    <div class="saving">
+      <span>Total saved</span>
+      <strong>${formatMoney(saved)}</strong>
+    </div>
+    <div>
+      <span>GCash total</span>
+      <strong>${formatMoney(total)}</strong>
+    </div>
+  `;
+}
+
+function renderGcashPaymentDetails() {
+  if (!els.checkoutGcashDetails) return;
+  const settings = getPaymentSettings();
+  els.checkoutGcashDetails.innerHTML = `
+    <div class="gcash-qr-frame">
+      ${
+        settings.gcashQr
+          ? `<img src="${escapeHtml(settings.gcashQr)}" alt="GCash QR code" />`
+          : `<span>No QR uploaded</span>`
+      }
+    </div>
+    <div class="gcash-payee-copy">
+      <span>Scan GCash QR</span>
+      <strong>${escapeHtml(settings.gcashName || defaultPaymentSettings.gcashName)}</strong>
+      <small>Pay the GCash total, then upload your receipt photo.</small>
+    </div>
+  `;
+}
+
 function renderCheckoutModal() {
   if (!els.checkoutOverlay) return;
   updateCheckoutButtonState();
   const savedTotal = getCartSavings();
   els.checkoutModalTotal.textContent = formatMoney(getCartTotal());
   els.checkoutModalCount.textContent = `${getCartUnits()} pc${getCartUnits() === 1 ? "" : "s"}${savedTotal ? ` / saved ${formatMoney(savedTotal)}` : ""}`;
-  els.checkoutModalList.innerHTML = renderCartLineItems({ compact: true }) || `<div class="empty-store">Cart empty</div>`;
+  els.checkoutModalList.innerHTML = renderCheckoutLineItems() || `<div class="empty-store">Cart empty</div>`;
+  if (els.checkoutTotalSummary) els.checkoutTotalSummary.innerHTML = renderCheckoutTotalSummary();
   els.checkoutUpsellList.innerHTML = renderUpsellCards();
   els.checkoutUpsellList.classList.toggle("empty", !getCheckoutUpsells().length);
+  renderGcashPaymentDetails();
   renderPaymentReceiptUpload();
 }
 
@@ -3049,6 +3205,7 @@ async function checkout() {
       paidUnit: getProductEffectivePrice(product, qty, variant, line.mode),
       retailUnit: getWholesaleBasePrice(product, variant, line.mode),
       wholesaleTier: getWholesaleTier(product, qty, variant, line.mode),
+      saved: Math.max(0, getWholesaleBasePrice(product, variant, line.mode) - getProductEffectivePrice(product, qty, variant, line.mode)) * qty,
       preorder: line.mode === "preorder",
       preorderEndsAt: product.preorderEndsAt,
       preorderStock: product.preorderStock,
@@ -3059,6 +3216,7 @@ async function checkout() {
     }];
   });
   const paidTotal = items.reduce((sum, item) => sum + item.paidUnit * item.qty, 0);
+  const savedTotal = items.reduce((sum, item) => sum + (Number(item.saved) || 0), 0);
   state.buyerCount += units;
   state.transactionCount += 1;
 
@@ -3069,6 +3227,7 @@ async function checkout() {
     items,
     units,
     refunded: 0,
+    savedTotal,
     golden: false,
     status: "pending",
     paymentReceipt: pendingPaymentReceipt,
@@ -3088,6 +3247,7 @@ async function checkout() {
         id: receipt.id,
         handle: receipt.handle,
         total: paidTotal,
+        savedTotal,
         units,
         itemCount: getCartItemCount(),
         items,
@@ -4082,6 +4242,7 @@ function renderMessageContent(message) {
   if (message.type === "receipt" && message.receipt) {
     const receipt = message.receipt;
     const actor = receipt.handle || message.author || "Anonymous buyer";
+    const receiptSavings = getReceiptSavingsTotal(receipt);
     const receiptItems = receipt.items?.length
       ? receipt.items
       : [{ name: `${receipt.itemCount || 1} item${receipt.itemCount === 1 ? "" : "s"}`, qty: receipt.units || 1, paidUnit: receipt.total || 0 }];
@@ -4124,11 +4285,22 @@ function renderMessageContent(message) {
                     <span>${highlightSearch(item.name)} x${item.qty}</span>
                     <b>${item.preorder ? "Preorder paid" : formatMoney(item.paidUnit * item.qty)}</b>
                   </div>
-                  ${item.preorder ? `<small>${escapeHtml(getBulkBuyLabel(item))} / ${escapeHtml(getAvailabilityLabel(item))}</small>` : ""}
+                  ${
+                    Number(item.saved) > 0
+                      ? `<small>${escapeHtml(formatMoney(item.saved))} saved / ${escapeHtml(item.wholesaleTier ? formatWholesaleTierLabel(item.wholesaleTier) : "Base price")}</small>`
+                      : item.preorder
+                      ? `<small>${escapeHtml(getBulkBuyLabel(item))} / ${escapeHtml(getAvailabilityLabel(item))}</small>`
+                      : ""
+                  }
                 `,
               )
               .join("")}
           </div>
+          ${
+            receiptSavings
+              ? `<div class="receipt-screenshot-total saving"><span>Total saved</span><strong>${formatMoney(receiptSavings)}</strong></div>`
+              : ""
+          }
           <div class="receipt-screenshot-total">
             <span>GCash total paid</span>
             <strong>${formatMoney(receipt.total)}</strong>
@@ -4252,6 +4424,7 @@ function renderAdminPanel() {
   els.adminChatCount.textContent = state.chat.length;
   renderAdminProductOptions();
   renderAdminPreorderControls();
+  renderAdminPaymentSettings();
   renderAdminReceiptOptions();
   renderAdminAccountList();
   renderAdminMemberList();
@@ -4275,6 +4448,22 @@ function renderAdminPanel() {
   els.adminSaveTrollRuleBtn.disabled = !admin || !getTrollControls().enabled || !els.adminTrollAccountSelect.value;
   els.adminDeleteTrollRuleBtn.disabled = !admin || !getSelectedTrollRule();
   els.adminSaveTrollStatsBtn.disabled = !admin;
+}
+
+function renderAdminPaymentSettings() {
+  if (!els.adminGcashNameInput || !els.adminGcashQrPreview) return;
+  const settings = getPaymentSettings();
+  if (document.activeElement !== els.adminGcashNameInput) {
+    els.adminGcashNameInput.value = settings.gcashName;
+  }
+  els.adminGcashQrPreview.innerHTML = settings.gcashQr
+    ? `
+      <span class="upload-chip">
+        <img src="${escapeHtml(settings.gcashQr)}" alt="Saved GCash QR" />
+        <strong>GCash QR saved</strong>
+      </span>
+    `
+    : `<span>No GCash QR saved</span>`;
 }
 
 function renderAdminTabs() {
@@ -5606,6 +5795,62 @@ async function getAdminProductImageValue(file, currentValue = "", fallbackValue 
   }
 }
 
+async function getAdminPaymentQrValue(file, currentValue = "") {
+  const existingQr = getStorablePaymentQr(currentValue);
+  if (!file) return existingQr;
+  if (!file.type.startsWith("image/")) {
+    window.alert("Upload an image file for the GCash QR.");
+    return existingQr;
+  }
+
+  const imageDataUrl = await readProductImageAsStorableDataUrl(file);
+  if (!imageDataUrl) {
+    window.alert("That QR image is too large to store. Use a smaller image.");
+    return existingQr;
+  }
+  if (mediaUploadDisabled) return imageDataUrl;
+  try {
+    const uploaded = await requestJson("/api/media", {
+      method: "POST",
+      body: JSON.stringify({
+        name: file.name,
+        type: file.type,
+        file: imageDataUrl,
+      }),
+    });
+    return uploaded.url;
+  } catch (error) {
+    if (error.status === 404) mediaUploadDisabled = true;
+    return imageDataUrl;
+  }
+}
+
+async function saveAdminPaymentSettings() {
+  if (!requireAdmin()) return;
+  const currentSettings = getPaymentSettings();
+  const gcashQr = await getAdminPaymentQrValue(els.adminGcashQrInput.files?.[0], currentSettings.gcashQr);
+  state.paymentSettings = normalizePaymentSettings({
+    gcashName: els.adminGcashNameInput.value.trim() || defaultPaymentSettings.gcashName,
+    gcashQr,
+    updatedAt: Date.now(),
+  });
+  els.adminGcashQrInput.value = "";
+  await saveCommunityState();
+  render();
+}
+
+async function removeAdminPaymentQr() {
+  if (!requireAdmin()) return;
+  state.paymentSettings = normalizePaymentSettings({
+    ...getPaymentSettings(),
+    gcashQr: "",
+    updatedAt: Date.now(),
+  });
+  if (els.adminGcashQrInput) els.adminGcashQrInput.value = "";
+  await saveCommunityState();
+  render();
+}
+
 function resetAdminProductForm() {
   els.adminProductSelect.value = "";
   els.adminProductNameInput.value = "";
@@ -6583,6 +6828,8 @@ els.adminSaveProductBtn.addEventListener("click", saveAdminProduct);
 els.adminRemoveProductBtn.addEventListener("click", removeAdminProduct);
 els.adminSetGoldenBtn.addEventListener("click", setGoldenTicketDistance);
 els.adminRunGoldenBtn.addEventListener("click", runGoldenTicketNow);
+els.adminSavePaymentSettingsBtn?.addEventListener("click", saveAdminPaymentSettings);
+els.adminRemoveGcashQrBtn?.addEventListener("click", removeAdminPaymentQr);
 els.adminGoldenTicketToggle.addEventListener("change", async (event) => {
   if (!requireAdmin()) return;
   state.goldenTicketEnabled = event.target.checked;
