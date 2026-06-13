@@ -1589,6 +1589,14 @@ h2 {
   background: linear-gradient(135deg, #7d1b55, #ec5a9a);
 }
 
+.store-panel .product-card.featured-product .variant-picker.open .variant-menu {
+  position: static;
+  z-index: auto;
+  width: 100%;
+  max-height: min(420px, 58vh);
+  overflow-y: auto;
+}
+
 .store-panel .product-card.featured-product .add-button {
   background: linear-gradient(135deg, #7d1b55, #ec5a9a);
   box-shadow: 0 12px 24px rgba(167, 45, 104, 0.26);
