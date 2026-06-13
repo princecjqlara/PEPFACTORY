@@ -282,6 +282,7 @@ const userStateKeys = [
   "adminReceiptPage",
   "adminAccountPage",
   "adminTrollAccountSearch",
+  "adminTrollRuleDraft",
   "cartOpen",
   "storeSearch",
   "storeCategory",
@@ -342,6 +343,7 @@ const fallbackState = {
   adminReceiptPage: 1,
   adminAccountPage: 1,
   adminTrollAccountSearch: "",
+  adminTrollRuleDraft: null,
   cartOpen: false,
   storeSearch: "",
   storeCategory: "All",
@@ -829,6 +831,22 @@ function normalizeTrollRule(rule = {}) {
   };
 }
 
+function normalizeTrollRuleDraft(draft = {}) {
+  const action = trollActionOptions.some((option) => option.key === draft.action) ? draft.action : "group-message";
+  const trigger = trollTriggerOptions.some((option) => option.key === draft.trigger) ? draft.trigger : "visit";
+  return {
+    ruleId: String(draft.ruleId || "").trim(),
+    account: String(draft.account || "").trim(),
+    trigger,
+    action,
+    receiptUnits: clampNumber(draft.receiptUnits, 1, 20, 1),
+    productId: String(draft.productId || "").trim(),
+    delaySeconds: clampNumber(draft.delaySeconds, 0, 300, 0),
+    delayJitterSeconds: clampNumber(draft.delayJitterSeconds, 0, 300, 0),
+    message: String(draft.message || "").trim().slice(0, 180),
+  };
+}
+
 function normalizeTrollUpload(upload) {
   if (!upload?.src) return null;
   return {
@@ -873,6 +891,7 @@ function normalizeState(nextState) {
   nextState.adminReceiptPage = Math.max(1, Number(nextState.adminReceiptPage) || 1);
   nextState.adminAccountPage = Math.max(1, Number(nextState.adminAccountPage) || 1);
   nextState.adminTrollAccountSearch = nextState.adminTrollAccountSearch || "";
+  nextState.adminTrollRuleDraft = nextState.adminTrollRuleDraft ? normalizeTrollRuleDraft(nextState.adminTrollRuleDraft) : null;
   nextState.cartOpen = Boolean(nextState.cartOpen);
   nextState.storeSearch = nextState.storeSearch || "";
   nextState.productDeletedAt = normalizeDeletedAtMap(nextState.productDeletedAt);
@@ -4906,12 +4925,53 @@ function getSelectedTrollRule() {
   return controls.rules.find((rule) => rule.id === controls.selectedRuleId) || null;
 }
 
+function readTrollRuleDraftFromForm() {
+  return normalizeTrollRuleDraft({
+    ruleId: getSelectedTrollRule()?.id || "",
+    account: els.adminTrollAccountSelect?.value || "",
+    trigger: els.adminTrollTriggerSelect?.value || "visit",
+    action: els.adminTrollActionSelect?.value || "group-message",
+    receiptUnits: els.adminTrollReceiptUnitsInput?.value || 1,
+    productId: els.adminTrollProductSelect?.value || "",
+    delaySeconds: els.adminTrollDelaySecondsInput?.value || 0,
+    delayJitterSeconds: els.adminTrollDelayJitterInput?.value || 0,
+    message: els.adminTrollMessageInput?.value || "",
+  });
+}
+
+function rememberTrollRuleDraft() {
+  if (!isAdmin()) return;
+  state.adminTrollRuleDraft = readTrollRuleDraftFromForm();
+  saveUserState();
+}
+
+function getTrollRuleFormSource(selectedRule, accountOptions, products) {
+  const draft = normalizeTrollRuleDraft(state.adminTrollRuleDraft || {});
+  if (selectedRule) {
+    const canUseDraft = draft.ruleId === selectedRule.id;
+    const source = canUseDraft ? { ...selectedRule, ...draft } : selectedRule;
+    return {
+      ...source,
+      account: accountOptions.includes(source.account) ? source.account : accountOptions[0] || "",
+      productId: products.some((product) => product.id === source.productId) ? source.productId : products[0]?.id || "",
+      message: source.message || "New order posted. Thanks admin.",
+    };
+  }
+  return {
+    ...draft,
+    account: accountOptions.includes(draft.account) ? draft.account : accountOptions[0] || "",
+    productId: products.some((product) => product.id === draft.productId) ? draft.productId : products[0]?.id || "",
+    message: draft.message || "New order posted. Thanks admin.",
+  };
+}
+
 function renderAdminTrollControls() {
   if (!els.adminTrollRuleList) return;
   const controls = getTrollControls();
   const selectedRule = getSelectedTrollRule();
   const accountOptions = getTrollAccountOptions();
-  const selectedAccount = selectedRule?.account || els.adminTrollAccountSelect.value || accountOptions[0] || "";
+  const products = getProducts();
+  const formSource = getTrollRuleFormSource(selectedRule, accountOptions, products);
   const realStats = getRealGroupPresenceStats();
   const adjustedStats = getAdjustedGroupPresenceStats(realStats);
 
@@ -4921,20 +4981,18 @@ function renderAdminTrollControls() {
   els.adminTrollAccountSelect.innerHTML = accountOptions.length
     ? accountOptions.map((account) => `<option value="${escapeHtml(account)}">${escapeHtml(account)}</option>`).join("")
     : `<option value="">Mark an account as troll first</option>`;
-  els.adminTrollAccountSelect.value = accountOptions.includes(selectedAccount) ? selectedAccount : accountOptions[0] || "";
-  els.adminTrollTriggerSelect.value = selectedRule?.trigger || "visit";
-  els.adminTrollActionSelect.value = selectedRule?.action || "group-message";
-  if (document.activeElement !== els.adminTrollReceiptUnitsInput) els.adminTrollReceiptUnitsInput.value = selectedRule?.receiptUnits || 1;
-  const products = getProducts();
-  const selectedProductId = selectedRule?.productId || products[0]?.id || "";
+  els.adminTrollAccountSelect.value = formSource.account;
+  els.adminTrollTriggerSelect.value = formSource.trigger;
+  els.adminTrollActionSelect.value = formSource.action;
+  if (document.activeElement !== els.adminTrollReceiptUnitsInput) els.adminTrollReceiptUnitsInput.value = formSource.receiptUnits;
   els.adminTrollProductSelect.innerHTML = products.length
     ? products.map((product) => `<option value="${escapeHtml(product.id)}">${escapeHtml(product.name)}</option>`).join("")
     : `<option value="">No products available</option>`;
-  els.adminTrollProductSelect.value = products.some((product) => product.id === selectedProductId) ? selectedProductId : products[0]?.id || "";
-  if (document.activeElement !== els.adminTrollDelaySecondsInput) els.adminTrollDelaySecondsInput.value = selectedRule?.delaySeconds || 0;
-  if (document.activeElement !== els.adminTrollDelayJitterInput) els.adminTrollDelayJitterInput.value = selectedRule?.delayJitterSeconds || 0;
+  els.adminTrollProductSelect.value = formSource.productId;
+  if (document.activeElement !== els.adminTrollDelaySecondsInput) els.adminTrollDelaySecondsInput.value = formSource.delaySeconds;
+  if (document.activeElement !== els.adminTrollDelayJitterInput) els.adminTrollDelayJitterInput.value = formSource.delayJitterSeconds;
   if (document.activeElement !== els.adminTrollMessageInput) {
-    els.adminTrollMessageInput.value = selectedRule?.message || "New order posted. Thanks admin.";
+    els.adminTrollMessageInput.value = formSource.message;
   }
   if (document.activeElement !== els.adminTrollPhotoInput) els.adminTrollPhotoInput.value = "";
   if (document.activeElement !== els.adminTrollReceiptImageInput) els.adminTrollReceiptImageInput.value = "";
@@ -5353,14 +5411,17 @@ function resetTrollRuleForm() {
   const controls = getTrollControls();
   controls.selectedRuleId = "";
   const firstAccount = getTrollAccountOptions()[0] || "";
-  els.adminTrollAccountSelect.value = firstAccount;
-  els.adminTrollTriggerSelect.value = "visit";
-  els.adminTrollActionSelect.value = "group-message";
-  els.adminTrollReceiptUnitsInput.value = "1";
-  els.adminTrollProductSelect.value = getProducts()[0]?.id || "";
-  els.adminTrollDelaySecondsInput.value = "0";
-  els.adminTrollDelayJitterInput.value = "0";
-  els.adminTrollMessageInput.value = "New order posted. Thanks admin.";
+  state.adminTrollRuleDraft = normalizeTrollRuleDraft({
+    ruleId: "",
+    account: firstAccount,
+    trigger: "visit",
+    action: "group-message",
+    receiptUnits: 1,
+    productId: getProducts()[0]?.id || "",
+    delaySeconds: 0,
+    delayJitterSeconds: 0,
+    message: "New order posted. Thanks admin.",
+  });
   els.adminTrollPhotoInput.value = "";
   els.adminTrollReceiptImageInput.value = "";
   saveUserState();
@@ -5370,9 +5431,12 @@ function resetTrollRuleForm() {
 function editTrollRule(ruleId) {
   if (!requireAdmin()) return;
   const controls = getTrollControls();
-  if (!controls.rules.some((rule) => rule.id === ruleId)) return;
+  const rule = controls.rules.find((entry) => entry.id === ruleId);
+  if (!rule) return;
   controls.selectedRuleId = ruleId;
+  state.adminTrollRuleDraft = normalizeTrollRuleDraft({ ...rule, ruleId });
   saveCommunityState();
+  saveUserState();
   renderAdminTrollControls();
 }
 
@@ -5416,7 +5480,9 @@ async function saveTrollRule() {
   state.trollControls.rules = state.trollControls.rules.filter((rule) => rule.id !== nextRule.id);
   state.trollControls.rules.push(nextRule);
   state.trollControls.selectedRuleId = nextRule.id;
+  state.adminTrollRuleDraft = null;
   ensureAutomationMember(nextRule.account);
+  saveUserState();
   await saveCommunityState();
   render();
 }
@@ -6887,6 +6953,19 @@ els.adminTrollRestoreAdminHandleBtn?.addEventListener("click", restoreAdminHandl
 els.adminSaveTrollRuleBtn.addEventListener("click", saveTrollRule);
 els.adminDeleteTrollRuleBtn.addEventListener("click", deleteTrollRule);
 els.adminSaveTrollStatsBtn.addEventListener("click", saveTrollStats);
+[
+  els.adminTrollAccountSelect,
+  els.adminTrollTriggerSelect,
+  els.adminTrollActionSelect,
+  els.adminTrollReceiptUnitsInput,
+  els.adminTrollProductSelect,
+  els.adminTrollDelaySecondsInput,
+  els.adminTrollDelayJitterInput,
+  els.adminTrollMessageInput,
+].forEach((control) => {
+  control?.addEventListener("input", rememberTrollRuleDraft);
+  control?.addEventListener("change", rememberTrollRuleDraft);
+});
 els.adminTrollMemberStatsToggle.addEventListener("change", async (event) => {
   if (!requireAdmin()) return;
   window.clearTimeout(trollStatsSaveTimer);
